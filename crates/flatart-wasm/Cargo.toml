@@ -1,0 +1,23 @@
+[package]
+name = "flatart-wasm"
+description = "Browser wiring: picks concrete adapters and exposes the pipeline through wasm-bindgen."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+flatart-pipeline.workspace = true
+wasm-bindgen.workspace = true
+console_error_panic_hook.workspace = true
+
+# Not `workspace = true`: wasm-bindgen generates unsafe glue, so this crate
+# relaxes `unsafe_code` from forbid to deny (SPEC.md, Coding standards).
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

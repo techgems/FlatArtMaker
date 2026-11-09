@@ -1,0 +1,13 @@
+[package]
+name = "flatart-domain"
+description = "FlatArtMaker data types. No third-party types beyond serde/thiserror."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true

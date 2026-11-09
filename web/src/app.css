@@ -1,0 +1,26 @@
+:root {
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-text: #1b1b1f;
+  --color-muted: #6b6b76;
+  --color-danger: #b42318;
+  --radius: 8px;
+  font-family: system-ui, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #141417;
+    --color-surface: #1d1d22;
+    --color-text: #ececf1;
+    --color-muted: #9a9aa5;
+    --color-danger: #f97066;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+}

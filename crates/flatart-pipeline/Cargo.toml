@@ -1,0 +1,14 @@
+[package]
+name = "flatart-pipeline"
+description = "Runs the stages through port traits and caches each result. Knows no concrete adapter."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[lints]
+workspace = true

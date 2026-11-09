@@ -1,0 +1,17 @@
+[package]
+name = "flatart-cli"
+description = "Native wiring: picks concrete adapters and runs the pipeline from the command line."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "flatart"
+path = "src/main.rs"
+
+[dependencies]
+flatart-pipeline.workspace = true
+
+[lints]
+workspace = true
