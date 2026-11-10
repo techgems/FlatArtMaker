@@ -25,7 +25,7 @@ Third-party crates, one per job. Each one is used **only inside its own adapter 
 
 | Job (interface) | First implementation | Dependency | Swap-in candidates |
 |---|---|---|---|
-| Colour detection (`ColorQuantizer`) | `flatart-quant-kmeans` | `kmeans_colors`, `palette` (OKLab) | median cut, Wu (in-house) |
+| Colour detection (`ColorQuantizer`) | `flatart-quant-kmeans` | in-house weighted k-means; `palette` (sRGB → OKLab). `kmeans_colors` was dropped: it needs an OS random source that doesn't build for WASM, and it can't hold pinned centres fixed. | median cut, Wu (in-house) |
 | Tracing colour borders (`BorderTracer`) | `flatart-trace-graph` | in-house (Pipeline step 7) | a `vtracer`-based tracer that also removes overlaps |
 | Curve fitting (`CurveFitter`) | `flatart-fit-kurbo` | `kurbo` | `visioncortex` spline fitting |
 | Triangulating faces (`Triangulator`) | `flatart-tri-itriangle` | `i_triangle` | `lyon_tessellation`, `earcutr` |

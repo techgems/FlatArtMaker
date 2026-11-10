@@ -12,7 +12,7 @@ Implement `ColorQuantizer` with k-means in OKLab.
   - Honour **pinned colours** as fixed centres that k-means doesn't move.
   - Output a `DetectedPalette` (with coverage %) and a detected `LabelMap`. Outside pixels get the reserved outside label.
 - **Determinism:** seeded randomness. The same input always gives the same output.
-- **Isolation:** `kmeans_colors` and `palette` are used only inside this crate.
+- **Isolation:** `palette` is used only inside this crate. The k-means is in-house (`kmeans_colors` doesn't build for WASM and can't fix centres).
 
 ## Acceptance
 - The `ColorQuantizer` testkit suite passes.
