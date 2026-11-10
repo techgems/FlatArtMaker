@@ -7,8 +7,8 @@ Turn a flat-colour, logo-style image into a colour-separated, flat-backed 3MF re
 - **Supported art:** flat, vector-like art. The UI says this before upload; photos and gradients are out of scope.
 - **Colour limit:** the printed result uses **12 output colours at most**. The image can contain more: extra detected colours are mapped onto those 12, automatically and then by hand.
 - **Outputs:**
-  - a `.3mf` in PrusaSlicer's format that opens with filaments assigned in **PrusaSlicer** and **Bambu Studio** (primary)
-  - a `.step` of the same model with real curves, so it can be edited in CAD (secondary). It must open cleanly in **Fusion** and **FreeCAD**; anything that passes both is expected to work in Onshape.
+  - a `.3mf` (primary) that opens as separate bodies, one per output colour, each on its colour's extruder (output colour slot *n* on extruder *n*). It comes in two formats, picked at download: one for **PrusaSlicer**, and one for **Bambu Studio and Orca-based slicers**. Exact behaviour in every other slicer is out of scope.
+  - a `.step` of the same model with real curves, so it can be edited in CAD (secondary). It must open cleanly in **Fusion**; anything that passes there is expected to work in Onshape.
   - the generated colour `.svg` (bonus)
 - **No server:** nothing is uploaded and all processing happens on the client.
 
@@ -43,12 +43,12 @@ Third-party crates, one per job. Each one is used **only inside its own adapter 
     - geometry: points, directions, axis placements, `LINE`, `B_SPLINE_CURVE_WITH_KNOTS`, `PLANE`, `SURFACE_OF_LINEAR_EXTRUSION`
     - topology: vertices, edges, loops, faces, `CLOSED_SHELL`, `MANIFOLD_SOLID_BREP`
     - a fixed template for units, context and product entries
-    - assembly entities, if named parts are used
+    - assembly entities for the named colour components
   - **What it must get right:**
     - each edge is shared by exactly two faces, in opposite directions
     - loops run in the right direction, so faces point outward
     - vertices are shared, never duplicated
-  - **How it's tested:** the same conformance suite as the other adapters, plus automated imports in `FreeCADCmd` that check the shape is valid, count the solids and read their names.
+  - **How it's tested:** the same conformance suite as the other adapters, plus an automated re-read of the output that checks the shells are closed, counts the solids and reads their names.
 - **Each switch needs:** its own adapter crate and the same conformance tests, so changing libraries is a one-line change in the wiring.
 
 Image decoding uses the browser (`createImageBitmap` → RGBA) to keep the WASM file small.
@@ -69,14 +69,14 @@ crates/
   flatart-ports/           the interfaces (traits) and their documented contracts, plus `testkit`,
                            the shared conformance tests every adapter must pass
   flatart-pipeline/        runs the stages and caches each result; depends only on domain + ports
-  flatart-raster/          in-house pixel stages (clean-up, printability); domain only
+  flatart-raster/          in-house pixel stages (load, clean-up, paint, printability): implements RasterStages
   flatart-quant-kmeans/    adapter: ColorQuantizer
   flatart-trace-graph/     adapter: BorderTracer
   flatart-fit-kurbo/       adapter: CurveFitter
   flatart-tri-itriangle/   adapter: Triangulator
-  flatart-mesh/            builds MeshModel from VectorModel through the Triangulator interface
+  flatart-mesh/            implements MeshBuilder: builds MeshModel from VectorModel through the Triangulator interface
   flatart-svg/             adapter: Exporter<VectorModel>
-  flatart-3mf/             adapter: Exporter<MeshModel>, plus SlicerDialect adapters (prusa)
+  flatart-3mf/             adapter: Exporter<MeshModel>, plus SlicerDialect adapters (prusa, bambu)
   flatart-step-truck/      adapter: Exporter<VectorModel> (primary)
   flatart-step-monstertruck/  adapter: Exporter<VectorModel> (fallback, created only when needed)
   flatart-cli/             wiring for native use
@@ -89,20 +89,30 @@ fixtures/                  test images and golden outputs
 ### Interfaces (traits in `flatart-ports`)
 | Interface | Signature (simplified) |
 |---|---|
-| `ColorQuantizer` | `(&RgbaImage, &QuantSettings, pins: &[Oklab]) -> (DetectedPalette, LabelMap)` |
+| `ColorQuantizer` | `(&RgbaImage, &QuantSettings, pins: &[Oklab]) -> Detection` (a `DetectedPalette` plus its `LabelMap`) |
 | `BorderTracer` | `(&LabelMap, &TraceSettings, &dyn CurveFitter) -> BorderMap` |
 | `CurveFitter` | `(&[Point], &FitSettings) -> Vec<CubicBezier>` (end points fixed) |
 | `Triangulator` | `(&PolygonWithHoles) -> Vec<[u32; 3]>` |
 | `Exporter<M>` | `id()`, `file_extension()`, `mime_type()`, `export(&M, &ExportOptions) -> Result<Vec<u8>>` |
-| `SlicerDialect` | `(&MeshModel, &Palette) -> Vec<(path, bytes)>`: the slicer-specific extra files inside a 3MF |
+| `SlicerDialect` | `id()`, `parts(&MeshModel) -> Result<Vec<PackageFile>>` (`MeshModel` carries the `OutputPalette`): every slicer-specific file inside a 3MF, i.e. the model part `3D/3dmodel.model` (part layout, part names) and the slicer config under `Metadata/` (extruder per part). The 3MF exporter owns the rest of the package: `[Content_Types].xml`, `_rels`, the thumbnail and the zip. |
+| `RasterStages` *(provisional)* | `load(&RgbaImage, &LoadSettings) -> LoadedImage`, `clean_up(&LabelMap, &CleanUpSettings) -> LabelMap`, `paint(&LabelMap, &[Paint]) -> LabelMap`, `printability(&LabelMap, &PrintabilitySettings) -> Printable` (Pipeline steps 1, 4, 5, 6) |
+| `ColourMapper` *(provisional)* | `(&DetectedPalette, &LabelMap, &EditLog, &MappingSettings) -> MappedColours` (Pipeline step 3) |
+| `MeshBuilder` *(provisional)* | `(&VectorModel, &MeshSettings, &dyn Triangulator) -> MeshModel` (Pipeline step 8) |
 
 ### Interface rules
 - **No third-party types cross an interface.** Signatures use only `flatart-domain` types; adapters convert at their edge.
+- **In-house stages sit behind interfaces too,** so the pipeline depends only on domain + ports. The three marked *provisional* have stub contracts and no conformance suite yet; each is settled, with its suite, by the task that implements it (06 colour mapping, 07 raster stages, 10 mesh builder).
 - **Every interface has a written contract and a conformance suite in `testkit`.**
   - Examples: "faces are closed loops", "triangles cover the polygon exactly once", "export is deterministic for the same input".
   - Every adapter runs that suite in its own tests. A replacement adapter is accepted when it passes the suite.
 - **Only the wiring crates (`flatart-cli`, `flatart-wasm*`) name concrete adapters.** Everything else receives `Box<dyn Trait>`, through `Pipeline::builder()`. Speed doesn't suffer, because each call does a whole stage of work.
 - **Optional adapters sit behind Cargo features.** This lets the WASM build include only what it ships.
+- **Choosing the slicer:** the 3MF exporter is built with a `Box<dyn SlicerDialect>`. The wiring crates pick `prusa` or `bambu` from the CLI's `--slicer` flag or the UI's slicer choice.
+- **`SlicerDialect` contract:**
+  - one part per output colour (plus the base when B > 0), named after the colour
+  - output colour slot *n* on extruder *n*
+  - a `3D/3dmodel.model` entry is always present, and no paths repeat
+  - deterministic output
 
 ### Front end (`web/`)
 - **Engine access:** the UI talks to the engine only through a TypeScript `EngineClient` interface. The implementation calls the worker through Comlink, and tests can use a fake.
@@ -210,15 +220,19 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    - Each mesh must be closed and have no self-intersections.
 9. **Export:**
    - **3MF:** one object with one *part* per colour, a standard `m:colorgroup`, and a thumbnail PNG.
-     - The slicer-specific files come from the **PrusaSlicer dialect** (`Metadata/Slic3r_PE_model.config`, filament per part). Bambu Studio reads PrusaSlicer files; the reverse is not reliable.
-     - A Bambu-native dialect (`Metadata/model_settings.config`) would be a separate `SlicerDialect` adapter, added only if testing shows it's needed.
+     - The part layout and the slicer-specific files come from the chosen `SlicerDialect`. Neither family reads the other's format correctly (milestone 0):
+       - **`prusa`:** one mesh holding every part, plus `Metadata/Slic3r_PE_model.config` with each part's triangle range, name and extruder.
+       - **`bambu`** (Bambu Studio and Orca-based slicers): one mesh object per part under a parent object, plus `Metadata/model_settings.config` with each part's name and extruder.
+     - Both dialects put output colour slot *n* on extruder *n*.
    - **STEP (AP214):** built from the shared-border map, with no straight-segment approximation.
      - **Bodies:** one solid per island, plus the base as a solid of its own when B > 0. Units are mm.
-     - **Names matter; colour doesn't.** Each body is named after its output colour, so anyone editing the file can recolour bodies in their own CAD tool:
-       - **Pattern:** the first body of a colour is `Black`, then `Black-1`, `Black-2`, …
+     - **Names matter; colour doesn't.** Bodies are grouped and named by output colour, so anyone editing the file can recolour a whole colour at once in their own CAD tool:
+       - **Structure (grouped bodies):** one root part, holding one named component per output colour (`Black`, `White`, …), plus a `Base` component when B > 0.
+         - Each colour component holds all of that colour's bodies as solids in a single shape. It has no sub-component per body, because that adds too much clutter when editing.
+         - In STEP terms: a root `PRODUCT`, one child `PRODUCT` per colour, and one `SHAPE_REPRESENTATION` per colour holding its `MANIFOLD_SOLID_BREP`s.
+       - **Body names:** the first body of a colour is `Black`, then `Black-1`, `Black-2`, … These names are written on the solids, but CAD tools may show generic names instead (Fusion ignored solid names in testing). The colour component's name is the one that matters.
        - **Numbering order:** by area, largest first, with ties broken top-to-bottom then left-to-right. The order is deterministic, so re-exporting gives the same names.
        - **The base** (when B > 0) is named `Base`. Base-colour faces merged into it don't get their own bodies.
-     - **Where names are written:** one approach is a single part whose solids carry the names (`MANIFOLD_SOLID_BREP('Black-1', …)`). The other is an assembly where each body is its own named part (`PRODUCT('Black-1', …)`). Milestone 0 picks whichever Fusion and FreeCAD both show.
      - **Colour styling** (`STYLED_ITEM` / `COLOUR_RGB`) is not required. It can be added later as a nice-to-have.
      - **Faces:** flat top and bottom faces bounded by the original curves, converted to B-splines. The side walls are straight extrusions of those curves.
      - **Geometry limits (permanent):**
@@ -233,6 +247,7 @@ Each stage caches its result, so a slider change only re-runs the stages after i
 - **Centre:** tabs for **Original**, **Mapped colours**, **Vector (SVG)** and **3D**.
 - **Right:** a summary of the output colours: the numbered filament chips, with names and % coverage. An **"Edit colours"** button opens the colour-mapping editor.
 - **Header:** "Download 3MF" (primary), "Download STEP" and "Download SVG". The STEP module loads on the first click and shows a spinner meanwhile.
+  - Next to "Download 3MF" is a slicer choice: **PrusaSlicer**, or **Bambu Studio / Orca**. The last choice is remembered.
 - **Persistence:** every piece of work is saved automatically as a project (see **Saved projects**). A "Recent projects" list on the start screen reopens them.
 
 ### Colour-mapping editor (modal, "Edit colours")
@@ -335,19 +350,24 @@ Derived data is **not** stored: the label map, border map, meshes and exports. I
 
 ## Milestones
 0. **Two tests, done first:**
-   - **Slicers:** hand-write a two-colour square 3MF in the PrusaSlicer dialect. Iterate until PrusaSlicer **and** Bambu Studio both open it with the parts on filaments 1 and 2. The input needed is a two-colour project saved from PrusaSlicer, to copy its metadata format exactly.
-   - **STEP:** build two islands of one colour, plus a base, from a square with a Bézier-curved hole. Write them as STEP with `truck` (git-pinned) and compile the same code to WASM. Confirm in **Fusion and FreeCAD** that the file opens cleanly and the bodies show as `Base`, `Black` and `Black-1`. Onshape is checked once as a sanity test.
-     - Try both naming approaches (named solids vs named assembly parts).
-     - Neither `truck` nor `monstertruck` names solids today: both write `MANIFOLD_SOLID_BREP('')`. Named assembly parts exist in `monstertruck` 0.4.1, and in `truck` only on its unreleased master branch.
-     - So the adapter either uses assemblies or edits names into the output.
+   - **Slicers:** hand-write a two-colour square 3MF. Iterate until it opens as separate parts on filaments 1 and 2, with no splitting. The inputs needed are two-colour projects saved from PrusaSlicer and from Bambu Studio, to copy their metadata formats exactly.
+     - **Outcome (2026-11-09):** each format works only in its own family, so there are two dialects.
+       - The PrusaSlicer format opens in Orca as one body.
+       - The Bambu format opens in PrusaSlicer as separate objects, all on extruder 1.
+       - Details: `spikes/3mf/FINDINGS.md`.
+   - **STEP:** build two islands of one colour, plus a base, from a square with a Bézier-curved hole. Write them as STEP with `truck` (git-pinned) and compile the same code to WASM. Confirm in **Fusion** that the file opens cleanly and shows the colour components with their bodies. Onshape is checked once as a sanity test.
      - If `truck` fails a check, retry it with `monstertruck`. If both fail, use the hand-written writer.
+     - **Outcome (2026-11-09):** `truck` master passed, natively and in WASM, and the file opens cleanly in Fusion.
+       - The grouped-bodies structure (one named component per colour) was chosen.
+       - Fusion ignores names on solids, and one component per body was too cluttered.
+       - Details: `spikes/step/FINDINGS.md`.
 1. **Native engine and CLI:**
    - Set up the workspace: `flatart-domain`, `flatart-ports` with `testkit` conformance suites, and `flatart-pipeline`.
-   - Write the first adapters, and `flatart in.png out.3mf --output-colors 8 ...` running stages 1–9 (3MF + SVG).
-   - Conformance tests run in CI from day one. Golden test: Jolteon PNG → no gaps between colours, opens in both slicers, about 100 mm, no repair warnings, and much smaller than the 10.8 MB reference. A second golden test with B = 0 checks that there is no base part, and that the colours start at z=0 and still meet with no gaps.
+   - Write the first adapters, and `flatart in.png out.3mf --slicer prusa|bambu --output-colors 8 ...` running stages 1–9 (3MF + SVG).
+   - Conformance tests run in CI from day one. Golden test: Jolteon PNG → no gaps between colours, each dialect opens in its slicer as separate parts on the right extruders, about 100 mm, no repair warnings, and much smaller than the 10.8 MB reference. A second golden test with B = 0 checks that there is no base part, and that the colours start at z=0 and still meet with no gaps.
 2. WASM build and worker, plus a minimal Svelte UI with the 2D tabs and download.
 3. three.js preview, the colour-mapping editor (mapping, output colours, paint mode, eyedropper pins, undo/redo), the X/Y size control and saved projects.
-4. **STEP export:** `flatart-step-truck` (or the fallback adapter, if milestone 0 forced a switch), `flatart-wasm-step` loaded on demand, plus a `--step` flag on the CLI. Golden test: Jolteon STEP opens with one solid per island, names following the `Colour`, `Colour-1`, … pattern, and no repair needed.
+4. **STEP export:** `flatart-step-truck` (or the fallback adapter, if milestone 0 forced a switch), `flatart-wasm-step` loaded on demand, plus a `--step` flag on the CLI. Golden test: Jolteon STEP opens with one named component per output colour (plus `Base`), one solid per island inside it, and no repair needed.
 5. Polish: the SVG download, and deploying the static site.
 
 ## Later (v2 candidates)
@@ -358,4 +378,4 @@ Derived data is **not** stored: the label map, border map, meshes and exports. I
 - multiple pieces per plate
 
 ## Open questions
-- Does Bambu Studio keep the per-part filament assignment and part names when it imports a PrusaSlicer-dialect 3MF, or only the geometry? Expected: it keeps them. Milestone 0 confirms; if not, add the Bambu dialect adapter.
+- None at present.

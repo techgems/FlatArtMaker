@@ -9,7 +9,7 @@ Wire every adapter natively and lock the behaviour down with golden tests.
 - **`flatart-cli`:**
   - **Argument parsing:** uses `clap`.
   - **Wiring:** the only place that names the concrete adapters.
-  - **Usage:** `flatart in.png out.3mf [--svg out.svg] --output-colors 8 --base 3.4 --layer 1.0 --size-x 100 [--no-thin-fix | --min-width 0.25] [--edits edits.json]`.
+  - **Usage:** `flatart in.png out.3mf --slicer prusa|bambu [--svg out.svg] --output-colors 8 --base 3.4 --layer 1.0 --size-x 100 [--no-thin-fix | --min-width 0.25] [--edits edits.json]`.
 - **Fixtures:** `fixtures/jolteon/` holds the input PNG and the expected outputs.
 - **Golden tests:**
   - Jolteon with the defaults

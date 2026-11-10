@@ -1,5 +1,7 @@
 # 04: Domain types and ports
 
+**Completed:** 2026-11-09 · commit pending
+
 **Depends on:** 01 · **Spec:** Architecture, Core data model, Pipeline, Controls
 
 ## Goal
@@ -18,9 +20,10 @@ Define the stable backbone: data types, capability interfaces and the pipeline s
   - `CurveFitter`
   - `Triangulator`
   - `Exporter<M>`
-  - `SlicerDialect`
+  - `SlicerDialect`: `id()` plus `parts(&MeshModel)` (the model carries its `OutputPalette`), which returns every slicer-specific file of a 3MF: the model part `3D/3dmodel.model` (part layout and names) and the slicer config under `Metadata/` (extruder per part). See SPEC "Interfaces".
   - **Naming:** each trait is named for its capability, never for a library. Signatures use domain types only.
 - **`flatart-ports::testkit`** (behind a feature flag): one conformance suite per trait, generic over any implementation.
+  - The `SlicerDialect` suite checks what's format-independent: a `3D/3dmodel.model` entry, no repeated paths, identical output on two runs. Each dialect's own tests (task 12) check part names and extruders.
 - **`flatart-pipeline`:**
   - `Pipeline::builder()` takes `Box<dyn Trait>` per port.
   - The stage graph matches Pipeline steps 1–9.

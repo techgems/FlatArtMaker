@@ -1,7 +1,14 @@
 //! The pipeline: runs each stage through its port and caches the result.
 //!
-//! It receives adapters as `Box<dyn Trait>` from a wiring crate and never
-//! names a concrete adapter.
+//! It receives adapters as `Box<dyn Trait>` from a wiring crate, through
+//! [`Pipeline::builder`], and never names a concrete adapter.
+
+mod builder;
+mod cache;
+mod pipeline;
+
+pub use builder::PipelineBuilder;
+pub use pipeline::Pipeline;
 
 use flatart_domain::EngineInfo;
 
@@ -13,11 +20,4 @@ pub fn engine_info() -> EngineInfo {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reports_crate_version() {
-        assert_eq!(engine_info().version, env!("CARGO_PKG_VERSION"));
-    }
-}
+mod tests;

@@ -1,5 +1,7 @@
 # 01: Toolchain, build and tooling
 
+**Completed:** 2026-11-09 · commit 2573bb7
+
 **Depends on:** – · **Spec:** Stack, Coding standards
 
 ## Goal
@@ -13,8 +15,8 @@ The scaffold builds end to end, and the lint and test tooling exists before feat
   - `npm run build` passes, producing a 19 KB `.wasm` file.
   - `npm run dev` and `npm run preview` both show "Engine v0.1.0" with no console errors.
   - ESLint (type-checked; bans `enum`, `any`, floating promises), Prettier and Vitest are set up. `npm run lint` and `npm test` pass (2 tests).
-  - `git init -b main` is done.
-- **Remaining:** the first commit (step 7), on the user's go-ahead.
+  - The repo is `techgems/FlatArtMaker`, and the first commit is `2573bb7`.
+- **Remaining:** none.
 
 ## Steps
 1. Install the "Desktop development with C++" workload in Visual Studio (the user does this; it needs admin).

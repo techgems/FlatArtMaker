@@ -15,6 +15,7 @@ Implement the automatic detected → output mapping, and replaying the edit log,
   - **Undo and redo:** move the log position. Never mutate past entries.
 - **Re-matching:** when detection changes, match each stored detected ID to the nearest new colour within ΔE. Return a report of the operations that were dropped.
 - **Outputs:** the output label map (after mapping) and the list of paint operations for task 07. Painting is applied after clean-up.
+- **Finish the `ColourMapper` port** (`flatart-ports`, provisional since task 04): settle its signature and contract against this implementation, and add its testkit suite.
 
 ## Acceptance
 - Unit tests for each operation, undo/redo, the 12-colour limit, unique names, and re-matching with a dropped-operation report.

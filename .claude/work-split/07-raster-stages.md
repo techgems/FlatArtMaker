@@ -14,6 +14,7 @@ Handle every pixel-level stage between mapping and tracing.
   - the thin-feature fix when `MinFeatureWidth` is set: per colour, shrink then regrow by half the width, with removed pixels going to the neighbour that most surrounds them
   - pixels-per-mm comes from `PrintScale`
 - **Feedback:** a "thin features remaining" report that the UI can show as warnings.
+- **Finish the `RasterStages` port** (`flatart-ports`, provisional since task 04): settle its signatures and contract against this implementation, and add its testkit suite. The stage result types in `flatart-domain` (`LoadedImage`, `Printable`, `ThinFeature`) are provisional too.
 
 ## Acceptance
 - **Unit tests on synthetic label maps:**

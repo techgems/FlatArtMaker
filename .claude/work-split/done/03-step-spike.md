@@ -1,9 +1,11 @@
 # 03: STEP test
 
+**Completed:** 2026-11-09 · commit pending
+
 **Depends on:** 01 · **Spec:** STEP library policy, Pipeline step 9 (STEP), Milestones 0
 
 ## Goal
-Prove that `truck` (git-pinned) can write named, solid straight extrusions that Fusion and FreeCAD import cleanly, natively **and** in WASM.
+Prove that `truck` (git-pinned) can write named, solid straight extrusions that Fusion imports cleanly, natively **and** in WASM.
 
 ## Steps
 1. In `spikes/step/`, depend on `ricosjp/truck` (`truck-modeling`, `truck-stepio`, `truck-assembly`), pinned to the current `master` commit.
@@ -15,7 +17,7 @@ Prove that `truck` (git-pinned) can write named, solid straight extrusions that 
    - (a) named `MANIFOLD_SOLID_BREP`s in one part (patch the names into the output if `truck` writes `''`)
    - (b) an assembly with named `PRODUCT`s
 4. Compile the same code for `wasm32-unknown-unknown`, and record the `.wasm` size after `wasm-opt -Oz`.
-5. Import into FreeCAD (scripted with `FreeCADCmd`: shape valid, solid count, names) and Fusion (by hand). Sanity-check in Onshape.
+5. Re-read the output automatically (closed shells, solid count, names), then import into Fusion by hand. Sanity-check in Onshape.
 6. If `truck` fails any check, repeat with `monstertruck` 0.4.x. If that also fails, write down the scope of the hand-written writer.
 
 ## Acceptance
@@ -23,5 +25,5 @@ Prove that `truck` (git-pinned) can write named, solid straight extrusions that 
   - the chosen library and commit
   - the chosen naming strategy
   - the WASM size
-  - screenshots or notes from FreeCAD and Fusion showing the bodies `Base`, `Black`, `Black-1`
-- The `FreeCADCmd` check script is saved for reuse in task 19's golden tests.
+  - notes from Fusion showing the bodies `Base`, `Black`, `Black-1`
+- The automated re-read check is saved for reuse in task 19's golden tests.

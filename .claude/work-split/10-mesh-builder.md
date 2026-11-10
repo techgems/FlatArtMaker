@@ -14,6 +14,7 @@ Turn a `VectorModel` into a watertight `MeshModel`.
   - **Base-colour faces:** when B > 0, merged into the base.
   - **No base (B = 0):** the colour layer starts at z=0, with no base body and no base colour.
   - **Isolation:** triangulation goes only through the `Triangulator` port.
+- **Finish the `MeshBuilder` port** (`flatart-ports`, provisional since task 04): settle its signature and contract against this implementation, and add its testkit suite. Use `testkit::mesh::assert_watertight` for the watertight check.
 
 ## Acceptance
 - The `Triangulator` testkit suite passes.

@@ -2,6 +2,11 @@
 
 - **Source of truth:** `SPEC.md`. Do not edit it unless the user explicitly asks.
 - **Work items:** `.claude/work-split/`. Start at `00-index.md`. Do one task file at a time; its acceptance criteria define done.
+- **Closing a task:** once its acceptance passes and its work is committed:
+  1. Move the task file to `.claude/work-split/done/`.
+  2. Under its title, add `**Completed:** YYYY-MM-DD · commit <short hash>`, using the commit that holds the task's work.
+  3. In `00-index.md`, tick its box, point its link at `done/`, and fill in its **Completed** cell the same way.
+  - If the work isn't committed yet, leave the task open and say so. Never commit just to get a hash.
 
 ## Session output
 - Precise and succinct. No fluff, no filler, no restating the request, no praise.

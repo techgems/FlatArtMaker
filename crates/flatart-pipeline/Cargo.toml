@@ -10,5 +10,8 @@ publish.workspace = true
 flatart-domain.workspace = true
 flatart-ports.workspace = true
 
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
 [lints]
 workspace = true
