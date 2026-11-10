@@ -1,6 +1,6 @@
 # 02: Slicer 3MF test
 
-**Completed:** 2026-11-09 · commit pending
+**Completed:** 2026-11-09 · commit 95c7a3a
 
 **Depends on:** 01 · **Spec:** Pipeline step 9 (3MF), Milestones 0
 

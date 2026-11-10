@@ -10,9 +10,9 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | # | Task | Depends on | Spec milestone | Completed |
 |---|---|---|---|---|
 | - [x] 01 | [Toolchain, build and tooling](done/01-toolchain-and-build.md) | – | setup | 2026-11-09 · 2573bb7 |
-| - [x] 02 | [Slicer 3MF test](done/02-slicer-spike.md) | 01 | 0 | 2026-11-09 · commit pending |
-| - [x] 03 | [STEP test](done/03-step-spike.md) | 01 | 0 | 2026-11-09 · commit pending |
-| - [x] 04 | [Domain types and ports](done/04-domain-and-ports.md) | 01 | 1 | 2026-11-09 · commit pending |
+| - [x] 02 | [Slicer 3MF test](done/02-slicer-spike.md) | 01 | 0 | 2026-11-09 · 95c7a3a |
+| - [x] 03 | [STEP test](done/03-step-spike.md) | 01 | 0 | 2026-11-09 · 95c7a3a |
+| - [x] 04 | [Domain types and ports](done/04-domain-and-ports.md) | 01 | 1 | 2026-11-09 · 95c7a3a |
 | - [ ] 05 | [Colour detection adapter](05-colour-detection.md) | 04 | 1 | – |
 | - [ ] 06 | [Colour mapping and edit log](06-colour-mapping.md) | 04, 05 | 1 | – |
 | - [ ] 07 | [Raster stages](07-raster-stages.md) | 04 | 1 | – |

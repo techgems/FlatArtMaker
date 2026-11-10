@@ -1,6 +1,6 @@
 # 04: Domain types and ports
 
-**Completed:** 2026-11-09 · commit pending
+**Completed:** 2026-11-09 · commit 95c7a3a
 
 **Depends on:** 01 · **Spec:** Architecture, Core data model, Pipeline, Controls
 
