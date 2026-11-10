@@ -1,4 +1,5 @@
-//! The colour-mapping edit log (SPEC Pipeline step 5). Replaying it lives in task 06.
+//! The colour-mapping edit log (SPEC Pipeline steps 2–5). `flatart-mapping`
+//! replays it.
 
 use crate::{ColourName, Error, Oklab, OutputColourId, PxPoint, Result, Rgb};
 use serde::{Deserialize, Serialize};
@@ -21,7 +22,8 @@ pub enum EditOp {
         output: OutputColourId,
     },
     PaintRegion(Paint),
-    /// Adds an output colour, named automatically.
+    /// Adds an output colour, named automatically. `id` must be unused and at
+    /// least `OutputColourId::FIRST_ADDED`: see [`EditLog::next_output_id`].
     AddOutput {
         id: OutputColourId,
         display: Rgb,
@@ -39,7 +41,8 @@ pub enum EditOp {
         id: OutputColourId,
         name: ColourName,
     },
-    /// `None` clears the base colour.
+    /// `None` goes back to the automatic choice: the colour most common
+    /// along the art's outer edge.
     SetBase {
         id: Option<OutputColourId>,
     },
@@ -120,6 +123,21 @@ impl EditLog {
         self.position
     }
 
+    /// An unused ID for a new `AddOutput`: one past the highest added so far,
+    /// and never below `OutputColourId::FIRST_ADDED`.
+    pub fn next_output_id(&self) -> OutputColourId {
+        let highest = self
+            .ops
+            .iter()
+            .filter_map(|op| match op {
+                EditOp::AddOutput { id, .. } => Some(id.0.saturating_add(1)),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0);
+        OutputColourId(highest.max(OutputColourId::FIRST_ADDED.0))
+    }
+
     /// The active eyedropper pins, which detection needs before mapping runs.
     pub fn pins(&self) -> Vec<Oklab> {
         self.active()
@@ -195,6 +213,19 @@ mod tests {
         log.push(pin(0.1));
         log.undo();
         assert!(log.pins().is_empty());
+    }
+
+    #[test]
+    fn next_output_id_skips_automatic_ids_and_added_ones() {
+        let mut log = EditLog::new();
+        assert_eq!(log.next_output_id(), OutputColourId::FIRST_ADDED);
+        let add = |id| EditOp::AddOutput {
+            id: OutputColourId(id),
+            display: Rgb { r: 0, g: 0, b: 0 },
+        };
+        log.push(add(15));
+        log.push(add(13));
+        assert_eq!(log.next_output_id(), OutputColourId(16));
     }
 
     #[test]

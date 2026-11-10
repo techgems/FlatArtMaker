@@ -1,0 +1,17 @@
+[package]
+name = "flatart-mapping"
+description = "ColourMapper: the automatic detected-to-output mapping plus edit-log replay. In-house, no third-party deps."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true

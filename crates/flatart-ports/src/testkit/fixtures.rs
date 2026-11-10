@@ -1,13 +1,14 @@
 //! Small inputs shared by the suites and by adapter tests.
 
 use flatart_domain::settings::{
-    Advanced, CornerThreshold, Extrusion, FitSettings, LayerHeight, PrintScale, SmoothingTolerance,
-    TraceSettings, TraceUpscale,
+    Advanced, CornerThreshold, Extrusion, FitSettings, LayerHeight, MappingSettings,
+    OutputColourTarget, PrintScale, SmoothingTolerance, TraceSettings, TraceUpscale,
 };
 use flatart_domain::{
-    Border, BorderEnds, BorderId, BorderMap, ColourName, CubicBezier, Degrees, Face, Label,
-    LabelMap, Loop, LoopStep, Mesh, MeshModel, MeshPart, Mm, MmPerPx, MmPoint3, OutputColour,
-    OutputColourId, OutputPalette, PartKind, Px, PxPoint, Rgb, Rgba, RgbaImage, VectorModel,
+    Border, BorderEnds, BorderId, BorderMap, ColourName, CubicBezier, Degrees, DetectedColour,
+    DetectedPalette, Detection, Face, Label, LabelMap, Loop, LoopStep, Mesh, MeshModel, MeshPart,
+    Mm, MmPerPx, MmPoint3, Oklab, OutputColour, OutputColourId, OutputPalette, PartKind, Px,
+    PxPoint, Rgb, Rgba, RgbaImage, VectorModel,
 };
 
 pub const RED: Rgba = Rgba {
@@ -166,6 +167,40 @@ pub fn fit_settings_with(tolerance: f64, corner: f64) -> FitSettings {
 pub fn trace_settings() -> TraceSettings {
     TraceSettings {
         fit: fit_settings(),
+    }
+}
+
+/// Four detected colours on a 4 × 4 map: black (label 0), a near-black
+/// 2 ΔE away (1), white (2) and red (3). Black and near-black cover most of
+/// the outer edge.
+///
+/// ```text
+/// 0001
+/// 0012
+/// 2233
+/// .333
+/// ```
+pub fn detection() -> Detection {
+    let colour = |l, a, b, pixels| DetectedColour {
+        colour: Oklab::new(l, a, b).expect("finite fixture colour"),
+        pixels,
+    };
+    Detection {
+        palette: DetectedPalette::new(vec![
+            colour(0.20, 0.0, 0.0, 5),
+            colour(0.22, 0.0, 0.0, 2),
+            colour(0.95, 0.0, 0.0, 3),
+            colour(0.63, 0.22, 0.13, 5),
+        ])
+        .expect("valid fixture palette"),
+        labels: labels(&["0001", "0012", "2233", ".333"], 1),
+    }
+}
+
+/// Mapping settings asking for `target` output colours.
+pub fn mapping_settings(target: u8) -> MappingSettings {
+    MappingSettings {
+        target: OutputColourTarget::new(target).expect("target 1 to 16"),
     }
 }
 

@@ -3,7 +3,7 @@
 //! Every value type rejects invalid values on construction and on deserialising.
 
 use crate::bounded::{bounded_f64, bounded_int};
-use crate::{Degrees, DeltaE, Error, Mm, MmPerPx, Px, Result, Rgb};
+use crate::{Degrees, Error, Mm, MmPerPx, Px, Result, Rgb};
 use serde::{Deserialize, Serialize};
 
 bounded_f64!(
@@ -36,19 +36,15 @@ bounded_f64!(
     CurveTolerance(Mm), "curve tolerance", min = 0.005, min_inclusive = true, max = 0.2
 );
 
-bounded_f64!(
-    /// The automatic mapping merges colours closer than this.
-    MergeDeltaE(DeltaE), "colour merge ΔE", min = 0.0, min_inclusive = true, max = 30.0
-);
-
 bounded_int!(
     /// The most colours detection may find.
     DetectedColourLimit(u8 as "u8"), "detected colour limit", min = 2, max = 32
 );
 
 bounded_int!(
-    /// The automatic mapping's target number of output colours.
-    OutputColourTarget(u8 as "u8"), "output colour target", min = 1, max = 12
+    /// How many output colours the user wants. The automatic mapping merges
+    /// the most similar detected colours until no more than this remain.
+    OutputColourTarget(u8 as "u8"), "output colour target", min = 1, max = 16
 );
 
 bounded_int!(
@@ -135,7 +131,6 @@ impl Settings {
     pub fn mapping(&self) -> MappingSettings {
         MappingSettings {
             target: self.advanced.output_colours,
-            merge: self.advanced.merge_delta_e,
         }
     }
 
@@ -202,7 +197,6 @@ impl Default for LoadSettings {
 pub struct Advanced {
     pub detected_colours: DetectedColourLimit,
     pub output_colours: OutputColourTarget,
-    pub merge_delta_e: MergeDeltaE,
     pub speckle_area: SpeckleArea,
     pub trace_upscale: TraceUpscale,
     pub smoothing: SmoothingTolerance,
@@ -216,7 +210,6 @@ impl Default for Advanced {
         Self {
             detected_colours: DetectedColourLimit::new_unchecked(24),
             output_colours: OutputColourTarget::new_unchecked(8),
-            merge_delta_e: MergeDeltaE::new_unchecked(6.0),
             speckle_area: SpeckleArea::new_unchecked(16),
             trace_upscale: TraceUpscale::new_unchecked(2),
             smoothing: SmoothingTolerance::new_unchecked(0.5),
@@ -234,10 +227,9 @@ pub struct QuantSettings {
 }
 
 /// Settings for the automatic colour mapping.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MappingSettings {
     pub target: OutputColourTarget,
-    pub merge: MergeDeltaE,
 }
 
 /// Settings for the clean-up stage.
@@ -328,7 +320,8 @@ mod tests {
     fn integer_settings_are_range_checked() {
         assert!(DetectedColourLimit::new(1).is_err());
         assert!(DetectedColourLimit::new(33).is_err());
-        assert!(OutputColourTarget::new(13).is_err());
+        assert!(OutputColourTarget::new(16).is_ok());
+        assert!(OutputColourTarget::new(17).is_err());
         assert!(TraceUpscale::new(0).is_err());
         assert!(SpeckleArea::new(501).is_err());
     }

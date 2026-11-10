@@ -4,8 +4,9 @@ use crate::{Error, Label, Oklab, Result, Rgb};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-/// The most output colours a piece can have (SPEC "Colour limit").
-pub const MAX_OUTPUT_COLOURS: usize = 12;
+/// The most output colours a piece can have. The user picks how many they
+/// want (`OutputColourTarget`); this is the ceiling on that choice.
+pub const MAX_OUTPUT_COLOURS: usize = 16;
 
 /// The name the base part always has, so no output colour may use it.
 pub const BASE_NAME: &str = "Base";
@@ -55,6 +56,13 @@ impl DetectedPalette {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct OutputColourId(pub u16);
+
+impl OutputColourId {
+    /// IDs below this belong to the automatic mapping's colours (slot order
+    /// at the time). Colours the user adds take this ID or higher, so they
+    /// never collide when a setting changes how many automatic colours exist.
+    pub const FIRST_ADDED: Self = Self(MAX_OUTPUT_COLOURS as u16);
+}
 
 /// An output colour's name: 1–32 ASCII letters and digits, never `Base`.
 ///
@@ -132,7 +140,7 @@ pub struct OutputPalette {
 }
 
 impl OutputPalette {
-    /// Fails on more than 12 colours, a repeated ID or name (ignoring case),
+    /// Fails on more than [`MAX_OUTPUT_COLOURS`] colours, a repeated ID or name (ignoring case),
     /// an ID equal to `Label::OUTSIDE`, or a base that isn't in the list.
     pub fn new(colours: Vec<OutputColour>, base: Option<OutputColourId>) -> Result<Self> {
         let invalid = |reason: String| Error::InvalidValue {
@@ -173,7 +181,8 @@ impl OutputPalette {
         &self.colours
     }
 
-    /// The colour merged into the base. Always `None` when B = 0.
+    /// The base part's colour, whose faces merge into the base. Ignored when
+    /// B = 0 (no base). `None` only when there are no output colours.
     pub fn base(&self) -> Option<OutputColourId> {
         self.base
     }
@@ -184,7 +193,7 @@ impl OutputPalette {
 
     pub fn slot(&self, id: OutputColourId) -> Option<Slot> {
         let index = self.colours.iter().position(|c| c.id == id)?;
-        // At most 12 colours, so the slot always fits.
+        // At most 16 colours, so the slot always fits.
         u8::try_from(index + 1).ok().map(Slot)
     }
 }
@@ -246,17 +255,14 @@ mod tests {
     }
 
     #[test]
-    fn palette_allows_at_most_twelve_colours() {
-        let names = [
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-        ];
+    fn palette_allows_at_most_sixteen_colours() {
         let make = |n: usize| {
             (0..n)
-                .map(|i| colour(i as u16, names[i]))
+                .map(|i| colour(i as u16, &format!("C{i}")))
                 .collect::<Vec<_>>()
         };
-        assert!(OutputPalette::new(make(12), None).is_ok());
-        assert!(OutputPalette::new(make(13), None).is_err());
+        assert!(OutputPalette::new(make(16), None).is_ok());
+        assert!(OutputPalette::new(make(17), None).is_err());
     }
 
     #[test]

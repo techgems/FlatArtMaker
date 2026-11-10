@@ -12,11 +12,12 @@
 //! A suite panics with a message naming the broken contract clause. A
 //! replacement adapter is accepted when it passes the same suite.
 //!
-//! The provisional interfaces (`RasterStages`, `ColourMapper`,
-//! `MeshBuilder`) get their suites once their contracts are finished.
+//! The provisional interfaces (`RasterStages`, `MeshBuilder`) get their
+//! suites once their contracts are finished.
 
 pub mod border_tracer;
 pub mod color_quantizer;
+pub mod colour_mapper;
 pub mod curve_fitter;
 pub mod exporter;
 pub mod fixtures;

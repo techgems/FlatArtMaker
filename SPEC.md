@@ -5,7 +5,7 @@ Turn a flat-colour, logo-style image into a colour-separated, flat-backed 3MF re
 ## Scope and constraints
 - **Input:** one raster image (PNG, JPG or WebP). A transparent background marks "outside the piece".
 - **Supported art:** flat, vector-like art. The UI says this before upload; photos and gradients are out of scope.
-- **Colour limit:** the printed result uses **12 output colours at most**. The image can contain more: extra detected colours are mapped onto those 12, automatically and then by hand.
+- **Colour count:** the user chooses how many output colours to print, from 1 to a hard limit of **16**. Printing constraints mean most pieces use far fewer. The image can contain more colours: similar tones (two purples) are merged to reach the user's count, automatically and then by hand.
 - **Outputs:**
   - a `.3mf` (primary) that opens as separate bodies, one per output colour, each on its colour's extruder (output colour slot *n* on extruder *n*). It comes in two formats, picked at download: one for **PrusaSlicer**, and one for **Bambu Studio and Orca-based slicers**. Exact behaviour in every other slicer is out of scope.
   - a `.step` of the same model with real curves, so it can be edited in CAD (secondary). It must open cleanly in **Fusion**; anything that passes there is expected to work in Onshape.
@@ -64,13 +64,14 @@ The engine uses a **ports-and-adapters** design.
 ### Workspace layout
 ```
 crates/
-  flatart-domain/          data types only: Rgba, DetectedPalette, OutputPalette, ColourMapping, EditLog, LabelMap, BorderMap (Junction, Border, Face),
+  flatart-domain/          data types only: Rgba, DetectedPalette, OutputPalette, ColourMapping, SimilarityTree, EditLog, LabelMap, BorderMap (Junction, Border, Face),
                            VectorModel, MeshModel, Settings, units (Mm, Px), errors. No third-party deps except serde.
   flatart-ports/           the interfaces (traits) and their documented contracts, plus `testkit`,
                            the shared conformance tests every adapter must pass
   flatart-pipeline/        runs the stages and caches each result; depends only on domain + ports
   flatart-raster/          in-house pixel stages (load, clean-up, paint, printability): implements RasterStages
   flatart-quant-kmeans/    adapter: ColorQuantizer
+  flatart-mapping/         in-house colour mapping (merge by similarity, edit-log replay): implements ColourMapper
   flatart-trace-graph/     adapter: BorderTracer
   flatart-fit-kurbo/       adapter: CurveFitter
   flatart-tri-itriangle/   adapter: Triangulator
@@ -96,12 +97,12 @@ fixtures/                  test images and golden outputs
 | `Exporter<M>` | `id()`, `file_extension()`, `mime_type()`, `export(&M, &ExportOptions) -> Result<Vec<u8>>` |
 | `SlicerDialect` | `id()`, `parts(&MeshModel) -> Result<Vec<PackageFile>>` (`MeshModel` carries the `OutputPalette`): every slicer-specific file inside a 3MF, i.e. the model part `3D/3dmodel.model` (part layout, part names) and the slicer config under `Metadata/` (extruder per part). The 3MF exporter owns the rest of the package: `[Content_Types].xml`, `_rels`, the thumbnail and the zip. |
 | `RasterStages` *(provisional)* | `load(&RgbaImage, &LoadSettings) -> LoadedImage`, `clean_up(&LabelMap, &CleanUpSettings) -> LabelMap`, `paint(&LabelMap, &[Paint]) -> LabelMap`, `printability(&LabelMap, &PrintabilitySettings) -> Printable` (Pipeline steps 1, 4, 5, 6) |
-| `ColourMapper` *(provisional)* | `(&DetectedPalette, &LabelMap, &EditLog, &MappingSettings) -> MappedColours` (Pipeline step 3) |
+| `ColourMapper` | `map(&Detection, &EditLog, &MappingSettings) -> Result<MappedColours>`: the output palette, the mapping, the output label map, the paints, the `SimilarityTree` and the dropped edits (Pipeline steps 3 and 5) |
 | `MeshBuilder` *(provisional)* | `(&VectorModel, &MeshSettings, &dyn Triangulator) -> MeshModel` (Pipeline step 8) |
 
 ### Interface rules
 - **No third-party types cross an interface.** Signatures use only `flatart-domain` types; adapters convert at their edge.
-- **In-house stages sit behind interfaces too,** so the pipeline depends only on domain + ports. The three marked *provisional* have stub contracts and no conformance suite yet; each is settled, with its suite, by the task that implements it (06 colour mapping, 07 raster stages, 10 mesh builder).
+- **In-house stages sit behind interfaces too,** so the pipeline depends only on domain + ports. The two marked *provisional* have stub contracts and no conformance suite yet; each is settled, with its suite, by the task that implements it (07 raster stages, 10 mesh builder).
 - **Every interface has a written contract and a conformance suite in `testkit`.**
   - Examples: "faces are closed loops", "triangles cover the polygon exactly once", "export is deterministic for the same input".
   - Every adapter runs that suite in its own tests. A replacement adapter is accepted when it passes the suite.
@@ -161,9 +162,10 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    - There can be many more of these than will be printed: up to 32, 24 by default.
    - Every pixel is assigned to its nearest detected colour, producing a *detected label map*.
    - **Eyedropper pins:** a colour picked with the eyedropper in the editor joins detection as a fixed centre that k-means can't move. This catches small details the automatic pass would blur into a neighbour, like a tongue inside a cheek.
-3. **Map colours (user-editable):** every detected colour is mapped to exactly one **output colour**, a numbered filament slot. Mapping is many-to-one, and there are **12 output colours at most**.
-   - **Automatic first pass:** detected colours are grouped, merging the closest pair (weighted by pixel count) until no two groups are closer than the ΔE threshold and there are no more than "Output colours" groups. Each group becomes one output colour. This is only a starting point.
-   - **User control:** in the colour-mapping editor (see **UI**), the user can point any detected colour at any output colour.
+3. **Map colours (user-editable):** every detected colour is mapped to exactly one **output colour**, a numbered filament slot. Mapping is many-to-one, and there are **16 output colours at most**.
+   - **Automatic first pass (by count only):** the closest pair of groups in OKLab (each group at its pixel-weighted mean colour) is merged until no more than the user's **"Output colours"** count remain. There is no ΔE threshold: the user's count is the only stop. Each group becomes one output colour, slots ordered by pixel count. This is only a starting point.
+   - **Similarity map:** the merges continue past the user's count down to a single group, and the full merge order (which two groups joined, and how far apart they were in ΔE) is returned as a `SimilarityTree`. From it the editor can show which tones are similar at any count, and which two groups merge next if the count drops by one. Edits never change it: it describes the detected colours only.
+   - **User control:** in the colour-mapping editor (see **UI**), the user can point any detected colour at any output colour. Colours the user adds count toward the 16 limit, not toward their "Output colours" count.
    - **Result:** an *output label map*.
 4. **Clean up:** on the output label map:
    - Run a mode filter to remove the in-between colours that edge smoothing creates.
@@ -178,11 +180,11 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    |---|---|
    | **Map** | Sets which output colour a detected colour maps to. |
    | **Paint region** | Gives the area at a clicked point a different output colour. |
-   | **Add output colour** | Adds a colour with a picker, hex input or eyedropper. Can only be added while there are fewer than 12. |
+   | **Add output colour** | Adds a colour with a picker, hex input or eyedropper. Can only be added while there are fewer than 16. |
    | **Change output colour** | Changes the colour shown and exported (the 3MF colour list, SVG fills and previews). The mapping and areas stay the same. |
    | **Delete output colour** | The detected colours and painted areas that used it move to an output colour the user picks. |
    | **Rename** | Output colours get an automatic name from the nearest common colour name (e.g. `Black`, `OrangeYellow`). Names must be unique and use only letters and digits. They name the 3MF parts, the STEP bodies and the SVG layer IDs. |
-   | **Set base colour** | Disabled when the base height is 0. |
+   | **Set base colour** | Disabled when the base height is 0. Until the user picks one, the base is the output colour most common along the art's outer edge. |
    | **Reorder** | The order is the filament slot order (1, 2, 3, …). |
    | **Pin detected colour** | The eyedropper addition from step 2. |
    | **Reset mapping** | Brings back the automatic mapping. Painted areas are kept unless the user also clears them. |
@@ -196,9 +198,9 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    **How edits are stored:** as an ordered **edit log**. It's saved with the project, replayed on load, and gives **undo/redo** for free (step back and forward through the log).
    - **Stable IDs:**
      - Detected colours are identified by their OKLab colour.
-     - Output colours get a generated ID, so changing their colour never breaks a reference.
+     - Output colours get a generated ID, so changing their colour never breaks a reference. Automatic colours use IDs 0–15 and colours the user adds use 16 and up, so changing the count never makes them collide.
      - Painted areas are stored as the **clicked point in source-image pixels** plus the output colour ID, never as an area number. Area numbers change whenever settings change; a point always lands in a well-defined area.
-   - **If an Advanced setting changes detection:** each stored detected colour is matched to the nearest new one within a ΔE limit. Operations that no longer match are dropped, and the user is told which ones.
+   - **If an Advanced setting changes detection:** each stored detected colour is matched to the nearest new one within 10 ΔE. Operations that no longer match are dropped, and the user is told which ones.
 6. **Printability (still on pixels):** the X/Y size gives the pixels-per-mm.
    - Optionally upscale the label map (2–4×, nearest-neighbour).
    - **Thin-feature fix** (only when **"Fix thin features"** is on):
@@ -261,12 +263,15 @@ Its layout follows MakerWorld's lightbox-maker "Edit Color Details" dialog: a la
   - Hovering a row in the Mapping list highlights that detected colour's pixels on the canvas.
 - **Colour panel (right):**
   - **"Colours in use":** a row of **numbered chips**, one per output colour. The number is the filament slot, and the chip's fill and number colour match the colour.
-    - **Header actions:** **+** adds an output colour (up to 12). The **brush** icon toggles paint mode.
+    - **Header actions:** **+** adds an output colour (up to 16). The **brush** icon toggles paint mode.
     - **Clicking a chip** opens its details: a colour picker with hex input and an eyedropper, the name, a "base" option, and delete. Delete asks where its colours should go.
     - **Dragging chips** reorders them, and so the filament slots.
-    - An "n / 12" counter sits next to the chips.
+    - An "n / 16" counter sits next to the chips.
+  - **"Colour count":** the user's "Output colours" count (1–16), editable here. Changing it re-runs the automatic mapping.
+    - Detected colours are grouped by the similarity map, so similar tones sit together.
+    - The editor previews which two groups would merge next if the count dropped by one.
   - **"Mapping":** a two-column grid with one cell per detected colour, sorted by coverage. Each cell shows the detected colour as a **circle → the output chip** it maps to.
-    - Clicking the target chip opens a picker of the output colours, plus "+ New colour" (disabled at 12).
+    - Clicking the target chip opens a picker of the output colours, plus "+ New colour" (disabled at 16).
     - **"Reset mapping"** sits in the section header.
     - Below the grid, an **eyedropper "Pin a missed colour"** action handles details the detection merged away (Pipeline step 2).
   - **Paint mode (brush on):**
@@ -280,7 +285,7 @@ Its layout follows MakerWorld's lightbox-maker "Edit Color Details" dialog: a la
 - **Warnings shown inline:**
   - an output colour has nothing mapped or painted to it
   - a mapping or paint stroke would create a feature thinner than the threshold (only when the thin-feature fix is on)
-  - the 12-colour limit has been reached
+  - the 16-colour limit has been reached
 
 **Primary sliders:** both are **Z-axis** heights. The piece is printed lying flat on the bed, so in STEP each height is the **length of the extrusions**. These are the only two Z values the user controls: every colour shares the same layer height.
 
@@ -310,8 +315,7 @@ Its layout follows MakerWorld's lightbox-maker "Edit Color Details" dialog: a la
 | Control | Default | Range |
 |---|---|---|
 | Detected colours (max) | 24 | 2–32 |
-| Output colours (target for the automatic mapping) | 8 | 1–12 |
-| Colour merge ΔE (automatic mapping) | 6 | 0–30 |
+| Output colours (the user's count for the automatic mapping; also set in the colour-mapping editor) | 8 | 1–16 |
 | Speckle area | 16 px | 0–500 px |
 | Trace upscale | 2× | 1–4× |
 | Smoothing tolerance | 0.5 px | 0.1–2 px |

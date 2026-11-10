@@ -4,13 +4,14 @@
 //! - Each trait is named for its capability, never for a library.
 //! - Signatures use only `flatart-domain` types.
 //! - Each trait documents its contract.
-//! - Each trait has a conformance suite in [`testkit`] (feature `testkit`) that every adapter runs.
+//! - Each trait has a conformance suite in `testkit` (feature `testkit`) that every adapter runs.
 //!
 //! Every method must be deterministic: no I/O, no clocks, seeded randomness.
 //! Errors are `flatart_domain::Error`; adapters map their own errors into it.
 
 mod border_tracer;
 mod color_quantizer;
+mod colour_mapper;
 mod curve_fitter;
 mod exporter;
 mod provisional;
@@ -22,8 +23,9 @@ pub mod testkit;
 
 pub use border_tracer::BorderTracer;
 pub use color_quantizer::ColorQuantizer;
+pub use colour_mapper::ColourMapper;
 pub use curve_fitter::CurveFitter;
 pub use exporter::Exporter;
-pub use provisional::{ColourMapper, MeshBuilder, RasterStages};
+pub use provisional::{MeshBuilder, RasterStages};
 pub use slicer_dialect::{MODEL_PATH, SlicerDialect};
 pub use triangulator::Triangulator;

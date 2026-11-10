@@ -1,5 +1,7 @@
 # 05: Colour detection adapter
 
+**Completed:** 2026-11-09 · commit 2b9ef33
+
 **Depends on:** 04 · **Spec:** Pipeline step 2 · **Crate:** `flatart-quant-kmeans`
 
 ## Goal

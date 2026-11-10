@@ -6,10 +6,10 @@ use flatart_domain::settings::{
     MeshSettings, PrintScale, PrintabilitySettings, QuantSettings, TraceSettings, TraceUpscale,
 };
 use flatart_domain::{
-    ArtBounds, BorderMap, ColourMapping, CubicBezier, DetectedColour, DetectedPalette, Detection,
-    EditLog, EditOp, Error, ExportOptions, Label, LabelMap, LoadedImage, MappedColours, MeshModel,
-    Mm, MmPerPx, Oklab, Paint, PolygonWithHoles, Printable, PxPoint, Result, RgbaImage, Settings,
-    Stage, VectorModel,
+    ArtBounds, BorderMap, ColourMapping, ColourName, CubicBezier, DetectedColour, DetectedPalette,
+    Detection, EditLog, EditOp, Error, ExportOptions, Label, LabelMap, LoadedImage, MappedColours,
+    MeshModel, Mm, MmPerPx, Oklab, OutputColourId, Paint, PolygonWithHoles, Printable, PxPoint,
+    Result, RgbaImage, Settings, Stage, VectorModel,
 };
 use flatart_ports::testkit::fixtures;
 use flatart_ports::{
@@ -92,21 +92,30 @@ impl ColorQuantizer for FakeQuantizer {
 
 struct FakeMapper(Calls);
 
+/// Passes the labels and the active paints through, with a fixed palette.
 impl ColourMapper for FakeMapper {
     fn map(
         &self,
-        _: &DetectedPalette,
-        labels: &LabelMap,
-        _: &EditLog,
+        detection: &Detection,
+        edits: &EditLog,
         _: &MappingSettings,
     ) -> Result<MappedColours> {
         self.0.hit("map");
+        let paints = edits
+            .active()
+            .iter()
+            .filter_map(|op| match op {
+                EditOp::PaintRegion(paint) => Some(*paint),
+                _ => None,
+            })
+            .collect();
         Ok(MappedColours {
             palette: fixtures::palette(),
             mapping: ColourMapping::default(),
-            labels: labels.clone(),
-            paints: vec![],
+            labels: detection.labels.clone(),
+            paints,
             dropped_edits: vec![],
+            similarity: Default::default(),
         })
     }
 }
@@ -294,7 +303,7 @@ fn a_height_change_only_rebuilds_the_mesh() {
 }
 
 #[test]
-fn a_detection_change_reruns_detection_and_everything_after() {
+fn a_detection_change_reruns_detection_and_mapping_only_if_labels_match() {
     let calls = Calls::default();
     let mut pipeline = full_pipeline(&calls);
     pipeline.mesh().unwrap();
@@ -303,8 +312,13 @@ fn a_detection_change_reruns_detection_and_everything_after() {
     pipeline.set_settings(changed);
     pipeline.mesh().unwrap();
     assert_eq!(calls.get("load"), 1);
-    for stage in ["quantize", "map", "clean_up", "paint", "trace", "mesh"] {
+    for stage in ["quantize", "map"] {
         assert_eq!(calls.get(stage), 2, "{stage} should re-run");
+    }
+    // The fake detection gives the same labels for any limit, so the
+    // output label map is unchanged and nothing after mapping re-runs.
+    for stage in ["clean_up", "paint", "trace", "mesh"] {
+        assert_eq!(calls.get(stage), 1, "{stage} should not re-run");
     }
 }
 
@@ -320,6 +334,37 @@ fn a_new_pin_reruns_detection() {
     pipeline.set_edits(edits);
     pipeline.detection().unwrap();
     assert_eq!(calls.get("quantize"), 2);
+}
+
+#[test]
+fn edits_that_keep_the_labels_skip_clean_up() {
+    let calls = Calls::default();
+    let mut pipeline = full_pipeline(&calls);
+    pipeline.printable().unwrap();
+    let mut edits = EditLog::new();
+    edits.push(EditOp::Rename {
+        id: OutputColourId(1),
+        name: ColourName::new("Snow").unwrap(),
+    });
+    pipeline.set_edits(edits.clone());
+    pipeline.printable().unwrap();
+    assert_eq!(
+        (calls.get("map"), calls.get("clean_up"), calls.get("paint")),
+        (2, 1, 1),
+        "a rename re-runs mapping only"
+    );
+
+    edits.push(EditOp::PaintRegion(Paint {
+        at: PxPoint::new(1.0, 1.0),
+        colour: OutputColourId(1),
+    }));
+    pipeline.set_edits(edits);
+    pipeline.printable().unwrap();
+    assert_eq!(
+        (calls.get("clean_up"), calls.get("paint")),
+        (1, 2),
+        "a paint re-runs from stage 5"
+    );
 }
 
 #[test]

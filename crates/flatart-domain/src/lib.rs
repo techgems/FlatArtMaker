@@ -15,6 +15,7 @@ mod image;
 mod models;
 mod palette;
 pub mod settings;
+mod similarity;
 mod stages;
 mod units;
 
@@ -33,5 +34,9 @@ pub use palette::{
     OutputColour, OutputColourId, OutputPalette, Slot,
 };
 pub use settings::Settings;
-pub use stages::{ArtBounds, Detection, LoadedImage, MappedColours, Printable, ThinFeature};
+pub use similarity::{GroupId, Merge, SimilarityTree};
+pub use stages::{
+    ArtBounds, Detection, DropReason, DroppedEdit, LoadedImage, MappedColours, Printable,
+    ThinFeature,
+};
 pub use units::{Degrees, DeltaE, Mm, MmPerPx, Px};

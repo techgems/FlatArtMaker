@@ -221,28 +221,31 @@ impl Pipeline {
         let key = key_of((Stage::MapColours, up, settings, edits.active()));
         let mapper = port(&self.ports.mapper, Stage::MapColours)?;
         let detection = self.caches.detection.get(up)?;
-        self.caches.mapped.refresh(key, || {
-            mapper.map(&detection.palette, &detection.labels, edits, &settings)
-        })
+        self.caches
+            .mapped
+            .refresh(key, || mapper.map(detection, edits, &settings))
     }
 
+    // Stages 4 and 5 key on the content they use from stage 3 (the label map,
+    // the paints), not on stage 3's key. So a paint only re-runs from stage 5,
+    // and a rename or colour change doesn't re-run either (SPEC step 5).
+
     fn ensure_cleaned(&mut self) -> Result<u64> {
-        let up = self.ensure_mapped()?;
+        let mapped = self.ensure_mapped()?;
         let settings = self.require_settings()?.clean_up();
-        let key = key_of((Stage::CleanUp, up, settings));
         let raster = port(&self.ports.raster, Stage::CleanUp)?;
-        let mapped = self.caches.mapped.get(up)?;
+        let labels = &self.caches.mapped.get(mapped)?.labels;
+        let key = key_of((Stage::CleanUp, labels, settings));
         self.caches
             .cleaned
-            .refresh(key, || raster.clean_up(&mapped.labels, &settings))
+            .refresh(key, || raster.clean_up(labels, &settings))
     }
 
     fn ensure_painted(&mut self) -> Result<u64> {
-        // The paint operations come from stage 3, which is upstream of stage 4.
         let (mapped, up) = (self.ensure_mapped()?, self.ensure_cleaned()?);
-        let key = key_of((Stage::Paint, up));
         let raster = port(&self.ports.raster, Stage::Paint)?;
         let paints = &self.caches.mapped.get(mapped)?.paints;
+        let key = key_of((Stage::Paint, up, paints));
         let cleaned = self.caches.cleaned.get(up)?;
         self.caches
             .painted
@@ -277,18 +280,18 @@ impl Pipeline {
         let settings = self.require_settings()?;
         let (scale, extrusion, mesh_settings) =
             (settings.scale, settings.extrusion(), settings.mesh());
-        let key = key_of((
-            Stage::Mesh,
-            borders,
-            mapped,
-            scale,
-            extrusion,
-            mesh_settings,
-        ));
         let mesher = port(&self.ports.mesher, Stage::Mesh)?;
         let triangulator = port(&self.ports.triangulator, Stage::Mesh)?;
         let border_map = self.caches.borders.get(borders)?;
         let palette = &self.caches.mapped.get(mapped)?.palette;
+        let key = key_of((
+            Stage::Mesh,
+            borders,
+            palette,
+            scale,
+            extrusion,
+            mesh_settings,
+        ));
         self.caches.mesh.refresh(key, || {
             let model = VectorModel {
                 borders: border_map.clone(),

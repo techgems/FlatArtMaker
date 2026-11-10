@@ -13,7 +13,7 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [x] 02 | [Slicer 3MF test](done/02-slicer-spike.md) | 01 | 0 | 2026-11-09 · 95c7a3a |
 | - [x] 03 | [STEP test](done/03-step-spike.md) | 01 | 0 | 2026-11-09 · 95c7a3a |
 | - [x] 04 | [Domain types and ports](done/04-domain-and-ports.md) | 01 | 1 | 2026-11-09 · 95c7a3a |
-| - [ ] 05 | [Colour detection adapter](05-colour-detection.md) | 04 | 1 | – |
+| - [x] 05 | [Colour detection adapter](done/05-colour-detection.md) | 04 | 1 | 2026-11-09 · 2b9ef33 |
 | - [ ] 06 | [Colour mapping and edit log](06-colour-mapping.md) | 04, 05 | 1 | – |
 | - [ ] 07 | [Raster stages](07-raster-stages.md) | 04 | 1 | – |
 | - [ ] 08 | [Border tracer](08-border-tracer.md) | 04, 09 | 1 | – |
