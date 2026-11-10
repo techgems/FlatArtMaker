@@ -1,0 +1,20 @@
+[package]
+name = "flatart-trace-graph"
+description = "BorderTracer: builds the shared-border map from a label map. In-house; curves come from the injected CurveFitter."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+# Tests trace with the real fitter, so fitted curves are checked for crossings.
+flatart-fit-kurbo = { path = "../flatart-fit-kurbo" }
+proptest.workspace = true
+
+[lints]
+workspace = true

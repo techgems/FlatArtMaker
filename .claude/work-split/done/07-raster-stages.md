@@ -1,5 +1,7 @@
 # 07: Raster stages
 
+**Completed:** 2026-11-10 · commit 2a50404
+
 **Depends on:** 04 · **Spec:** Pipeline steps 1, 4, 5 and 6 · **Crate:** `flatart-raster` (in-house, domain types only)
 
 ## Goal

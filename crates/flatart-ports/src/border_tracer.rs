@@ -12,7 +12,9 @@ use flatart_domain::{BorderMap, LabelMap, Result};
 ///   split at junctions. `left != right`. Open borders start and end exactly
 ///   at their junctions' points; closed ones end where they start.
 /// - **Curves:** every border's curve comes from `fitter`, with
-///   `settings.fit`. The tracer never fits curves itself.
+///   `settings.fit`. The tracer never fits curves itself. Where those curves
+///   would cross, the tracer may refit the borders involved more tightly
+///   (a smaller tolerance, down to the pixel edges with every turn a corner).
 /// - **No crossings:** borders only meet at their ends.
 /// - **Faces:** one per 4-connected area of a non-outside label, with that
 ///   label's colour. Each loop is closed: each step ends exactly where the

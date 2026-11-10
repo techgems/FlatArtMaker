@@ -1,0 +1,18 @@
+[package]
+name = "flatart-fit-kurbo"
+description = "CurveFitter: fits cubic Béziers to traced borders with kurbo."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+kurbo = { version = "0.13.1", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true
