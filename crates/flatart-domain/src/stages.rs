@@ -1,8 +1,4 @@
 //! Results of the in-house stages.
-//!
-//! **Provisional:** `LoadedImage`, `Printable` and `ThinFeature` take their
-//! final shape once `flatart-raster` (task 07) exists. `MappedColours` and
-//! its report are final (task 06).
 
 use crate::{
     ColourMapping, DetectedPalette, LabelMap, OutputColourId, OutputPalette, Paint, PxPoint,
@@ -81,7 +77,8 @@ pub enum DropReason {
     OutsideImage,
 }
 
-/// A feature thinner than the threshold that the fix couldn't remove.
+/// A part thinner than the threshold that the fix had to keep, because no
+/// other colour borders it (removing it would change the outline).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ThinFeature {
     pub at: PxPoint,
@@ -91,6 +88,9 @@ pub struct ThinFeature {
 /// Stage 6's result.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Printable {
+    /// Upscaled to the trace upscale, with the thin-feature fix applied.
     pub labels: LabelMap,
+    /// One per too-thin area, at its first cell in source pixels. Empty when
+    /// the fix is off.
     pub thin_features: Vec<ThinFeature>,
 }

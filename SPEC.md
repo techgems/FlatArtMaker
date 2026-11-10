@@ -96,13 +96,13 @@ fixtures/                  test images and golden outputs
 | `Triangulator` | `(&PolygonWithHoles) -> Vec<[u32; 3]>` |
 | `Exporter<M>` | `id()`, `file_extension()`, `mime_type()`, `export(&M, &ExportOptions) -> Result<Vec<u8>>` |
 | `SlicerDialect` | `id()`, `parts(&MeshModel) -> Result<Vec<PackageFile>>` (`MeshModel` carries the `OutputPalette`): every slicer-specific file inside a 3MF, i.e. the model part `3D/3dmodel.model` (part layout, part names) and the slicer config under `Metadata/` (extruder per part). The 3MF exporter owns the rest of the package: `[Content_Types].xml`, `_rels`, the thumbnail and the zip. |
-| `RasterStages` *(provisional)* | `load(&RgbaImage, &LoadSettings) -> LoadedImage`, `clean_up(&LabelMap, &CleanUpSettings) -> LabelMap`, `paint(&LabelMap, &[Paint]) -> LabelMap`, `printability(&LabelMap, &PrintabilitySettings) -> Printable` (Pipeline steps 1, 4, 5, 6) |
+| `RasterStages` | `load(&RgbaImage, &LoadSettings) -> LoadedImage`, `clean_up(&LabelMap, &CleanUpSettings) -> LabelMap`, `paint(&LabelMap, &[Paint]) -> LabelMap`, `printability(&LabelMap, &PrintabilitySettings) -> Printable` (Pipeline steps 1, 4, 5, 6) |
 | `ColourMapper` | `map(&Detection, &EditLog, &MappingSettings) -> Result<MappedColours>`: the output palette, the mapping, the output label map, the paints, the `SimilarityTree` and the dropped edits (Pipeline steps 3 and 5) |
 | `MeshBuilder` *(provisional)* | `(&VectorModel, &MeshSettings, &dyn Triangulator) -> MeshModel` (Pipeline step 8) |
 
 ### Interface rules
 - **No third-party types cross an interface.** Signatures use only `flatart-domain` types; adapters convert at their edge.
-- **In-house stages sit behind interfaces too,** so the pipeline depends only on domain + ports. The two marked *provisional* have stub contracts and no conformance suite yet; each is settled, with its suite, by the task that implements it (07 raster stages, 10 mesh builder).
+- **In-house stages sit behind interfaces too,** so the pipeline depends only on domain + ports. The one marked *provisional* has a stub contract and no conformance suite yet; it is settled, with its suite, by the task that implements it (10 mesh builder).
 - **Every interface has a written contract and a conformance suite in `testkit`.**
   - Examples: "faces are closed loops", "triangles cover the polygon exactly once", "export is deterministic for the same input".
   - Every adapter runs that suite in its own tests. A replacement adapter is accepted when it passes the suite.
@@ -156,7 +156,7 @@ Because the two areas on either side of a border use the **same curve**, the 3MF
 ## Pipeline
 Each stage caches its result, so a slider change only re-runs the stages after it.
 
-1. **Load:** read RGBA pixels. Pixels with alpha below a threshold count as outside. If the image has no transparency, the user can pick a background colour to treat as outside.
+1. **Load:** read RGBA pixels. Pixels with alpha below a threshold count as outside. If the image has no transparency, the user can pick a background colour to treat as outside (an exact RGB match).
    - **Art bounds:** the bounding box of the non-outside pixels sets the art's **aspect ratio**. Transparent padding around the art is ignored, so it doesn't distort the size.
 2. **Detect colours:** run k-means in OKLab on sampled opaque pixels to find the **detected colours**.
    - There can be many more of these than will be printed: up to 32, 24 by default.
@@ -167,9 +167,9 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    - **Similarity map:** the merges continue past the user's count down to a single group, and the full merge order (which two groups joined, and how far apart they were in ΔE) is returned as a `SimilarityTree`. From it the editor can show which tones are similar at any count, and which two groups merge next if the count drops by one. Edits never change it: it describes the detected colours only.
    - **User control:** in the colour-mapping editor (see **UI**), the user can point any detected colour at any output colour. Colours the user adds count toward the 16 limit, not toward their "Output colours" count.
    - **Result:** an *output label map*.
-4. **Clean up:** on the output label map:
-   - Run a mode filter to remove the in-between colours that edge smoothing creates.
-   - Merge connected blobs smaller than the speckle area into the neighbour they share the longest border with.
+4. **Clean up:** on the output label map, with 4-connected areas (as in tracing):
+   - Run a mode filter to remove the in-between colours that edge smoothing creates. Each pixel takes the most common colour in its 3×3 block, counting only non-outside pixels, and changes only when another colour is strictly more common than its own. Outside never changes. This rounds colour-to-colour corners by about a pixel.
+   - Merge connected blobs smaller than the speckle area into the neighbouring area they share the longest border with, smallest first. A merged blob counts toward the area it joined. Blobs that border only the outside are kept, so the outline never changes. A speckle area of 0 turns merging off.
 5. **Region painting (user-editable):** the user can repaint individual areas.
    - **How it works:** pick an output colour with the brush tool, then click areas in the editor. The connected area under each clicked point, in the cleaned output label map, is filled with that colour.
    - **Why this level:** only the clicked areas change, not everything mapped to their colour. It's done on pixels, so the shared-border map stays valid by construction.
@@ -204,7 +204,8 @@ Each stage caches its result, so a slider change only re-runs the stages after i
 6. **Printability (still on pixels):** the X/Y size gives the pixels-per-mm.
    - Optionally upscale the label map (2–4×, nearest-neighbour).
    - **Thin-feature fix** (only when **"Fix thin features"** is on):
-     - **How it works:** for each colour, shrink and regrow by half the threshold. This removes any part narrower than the threshold **in any X/Y direction**, including islands that small. The removed pixels go to the neighbouring colour that most surrounds them.
+     - **How it works:** for each colour, shrink and regrow by a disc as wide as the threshold (a morphological opening). This removes any part narrower than the threshold **in any X/Y direction**, including islands that small inside another colour. The removed pixels go to the other colour that most surrounds them, filling in from the edges.
+     - **The outline never changes:** a too-thin part with no other colour beside it (a whisker or dot sticking into the outside) keeps its colour and is reported as a thin feature, which feeds the warning in step 7. The few corner pixels of a wide part that the disc can't reach are rounding, not features, and aren't reported.
      - **When off:** the label map passes through unchanged. Modern printers can handle details thinner than a 0.4 mm nozzle, so this is the user's call.
 
    Doing this on pixels before tracing keeps the shared-border map valid by construction.

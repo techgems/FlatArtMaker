@@ -12,8 +12,8 @@
 //! A suite panics with a message naming the broken contract clause. A
 //! replacement adapter is accepted when it passes the same suite.
 //!
-//! The provisional interfaces (`RasterStages`, `MeshBuilder`) get their
-//! suites once their contracts are finished.
+//! The provisional `MeshBuilder` gets its suite once its contract is
+//! finished.
 
 pub mod border_tracer;
 pub mod color_quantizer;
@@ -23,6 +23,7 @@ pub mod exporter;
 pub mod fixtures;
 mod geometry;
 pub mod mesh;
+pub mod raster_stages;
 pub mod slicer_dialect;
 pub mod triangulator;
 

@@ -1,0 +1,17 @@
+[package]
+name = "flatart-raster"
+description = "RasterStages: the in-house pixel stages (load, clean-up, region painting, printability). No third-party deps."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true

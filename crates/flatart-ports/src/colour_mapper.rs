@@ -29,7 +29,7 @@ use flatart_domain::{Detection, EditLog, MappedColours, Result};
 ///   applies to the nearest current detected colour within the adapter's ΔE
 ///   limit, so edits survive changes to detection.
 /// - **Dropped edits:** an active operation that can't apply (no matching
-///   detected colour, unknown output colour, a 13th colour, a taken name, …)
+///   detected colour, unknown output colour, a 17th colour, a taken name, …)
 ///   is skipped and reported with its log position, in log order. It never
 ///   fails the whole mapping.
 /// - **Undo and redo:** only `edits.active()` counts.

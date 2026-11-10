@@ -94,6 +94,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "flatart-raster"
+version = "0.1.0"
+dependencies = [
+ "flatart-domain",
+ "flatart-ports",
+]
+
+[[package]]
 name = "flatart-wasm"
 version = "0.1.0"
 dependencies = [

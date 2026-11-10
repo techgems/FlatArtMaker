@@ -1,5 +1,7 @@
 # 06: Colour mapping and edit log
 
+**Completed:** 2026-11-10 · commit 8a2c5a3
+
 **Depends on:** 04, 05 · **Spec:** Pipeline steps 3 and 5 (operations, edit log, stable IDs) · **Crate:** `flatart-mapping`
 
 ## Goal

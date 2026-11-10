@@ -15,6 +15,7 @@ mod colour_mapper;
 mod curve_fitter;
 mod exporter;
 mod provisional;
+mod raster_stages;
 mod slicer_dialect;
 mod triangulator;
 
@@ -26,6 +27,7 @@ pub use color_quantizer::ColorQuantizer;
 pub use colour_mapper::ColourMapper;
 pub use curve_fitter::CurveFitter;
 pub use exporter::Exporter;
-pub use provisional::{MeshBuilder, RasterStages};
+pub use provisional::MeshBuilder;
+pub use raster_stages::RasterStages;
 pub use slicer_dialect::{MODEL_PATH, SlicerDialect};
 pub use triangulator::Triangulator;
