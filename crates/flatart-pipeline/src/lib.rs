@@ -6,6 +6,7 @@
 mod builder;
 mod cache;
 mod pipeline;
+mod thumbnail;
 
 pub use builder::PipelineBuilder;
 pub use pipeline::Pipeline;

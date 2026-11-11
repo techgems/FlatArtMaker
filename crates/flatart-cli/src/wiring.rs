@@ -1,0 +1,30 @@
+//! Every adapter, wired into a pipeline.
+
+use flatart_3mf::{BambuDialect, PrusaDialect, ThreeMfExporter};
+use flatart_domain::Result;
+use flatart_fit_kurbo::KurboFitter;
+use flatart_mapping::MergeMapper;
+use flatart_mesh::Extruder;
+use flatart_pipeline::Pipeline;
+use flatart_quant_kmeans::KmeansQuantizer;
+use flatart_raster::PixelStages;
+use flatart_svg::SvgExporter;
+use flatart_trace_graph::GraphTracer;
+use flatart_tri_itriangle::ITriangulator;
+
+/// A pipeline with every stage and exporter: `svg`, `3mf-prusa` and
+/// `3mf-bambu`.
+pub fn pipeline() -> Result<Pipeline> {
+    Pipeline::builder()
+        .raster_stages(Box::new(PixelStages))
+        .color_quantizer(Box::new(KmeansQuantizer))
+        .colour_mapper(Box::new(MergeMapper))
+        .border_tracer(Box::new(GraphTracer))
+        .curve_fitter(Box::new(KurboFitter))
+        .mesh_builder(Box::new(Extruder))
+        .triangulator(Box::new(ITriangulator))
+        .vector_exporter(Box::new(SvgExporter))
+        .mesh_exporter(Box::new(ThreeMfExporter::new(Box::new(PrusaDialect))))
+        .mesh_exporter(Box::new(ThreeMfExporter::new(Box::new(BambuDialect))))
+        .build()
+}

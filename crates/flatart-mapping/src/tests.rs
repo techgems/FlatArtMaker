@@ -245,7 +245,7 @@ fn reorder_changes_slots_but_not_names() {
         order: vec![WHITE, BLACK, RED],
     }]);
     assert_eq!(ids(&m), [WHITE, BLACK, RED]);
-    assert_eq!(m.palette.slot(WHITE).unwrap().get(), 1);
+    assert_eq!(m.palette.slot(WHITE, |_| true).unwrap().get(), 1);
     assert_eq!(name(&m, BLACK), "Black");
 
     let m = map([

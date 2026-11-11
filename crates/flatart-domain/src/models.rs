@@ -52,9 +52,11 @@ impl MeshModel {
         }
     }
 
-    /// The filament slot, which is also the extruder number.
+    /// The filament slot, which is also the extruder number. Only colours
+    /// with a part take a slot, so the slots have no gaps.
     pub fn slot(&self, part: &MeshPart) -> Option<Slot> {
-        self.palette.slot(part.colour)
+        self.palette
+            .slot(part.colour, |id| self.parts.iter().any(|p| p.colour == id))
     }
 }
 

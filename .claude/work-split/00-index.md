@@ -16,8 +16,8 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [x] 05 | [Colour detection adapter](done/05-colour-detection.md) | 04 | 1 | 2026-11-09 · 2b9ef33 |
 | - [x] 06 | [Colour mapping and edit log](done/06-colour-mapping.md) | 04, 05 | 1 | 2026-11-10 · 8a2c5a3 |
 | - [x] 07 | [Raster stages](done/07-raster-stages.md) | 04 | 1 | 2026-11-10 · 2a50404 |
-| - [ ] 08 | [Border tracer](08-border-tracer.md) | 04, 09 | 1 | – |
-| - [ ] 09 | [Curve fitting adapter](09-curve-fitting.md) | 04 | 1 | – |
+| - [x] 08 | [Border tracer](done/08-border-tracer.md) | 04, 09 | 1 | 2026-11-10 · a5a3c65 |
+| - [x] 09 | [Curve fitting adapter](done/09-curve-fitting.md) | 04 | 1 | 2026-11-10 · a5a3c65 |
 | - [ ] 10 | [Mesh builder](10-mesh-builder.md) | 04, 08 | 1 | – |
 | - [ ] 11 | [SVG exporter](11-export-svg.md) | 08 | 1 | – |
 | - [ ] 12 | [3MF exporter](12-export-3mf.md) | 02, 10 | 1 | – |

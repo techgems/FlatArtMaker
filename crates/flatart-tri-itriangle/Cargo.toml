@@ -1,0 +1,18 @@
+[package]
+name = "flatart-tri-itriangle"
+description = "Triangulator: fills flat polygons with holes using i_triangle."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+i_triangle = "0.51.0"
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true

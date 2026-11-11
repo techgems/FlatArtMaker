@@ -2,3 +2,7 @@
 /web/node_modules
 /web/dist
 /web/src/generated
+
+# Only the Jolteon golden fixtures are tracked; the rest of fixtures/ is local.
+/fixtures/*
+!/fixtures/jolteon/

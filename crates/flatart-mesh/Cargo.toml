@@ -1,0 +1,23 @@
+[package]
+name = "flatart-mesh"
+description = "MeshBuilder: extrudes the shared-border map into watertight parts. In-house; triangulation comes from the injected Triangulator."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+# Tests build meshes with the real triangulator.
+flatart-tri-itriangle = { path = "../flatart-tri-itriangle" }
+# And traced maps, for property tests on real border maps.
+flatart-trace-graph = { path = "../flatart-trace-graph" }
+flatart-fit-kurbo = { path = "../flatart-fit-kurbo" }
+proptest.workspace = true
+
+[lints]
+workspace = true

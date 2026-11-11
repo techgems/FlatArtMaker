@@ -6,12 +6,36 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[lib]
+name = "flatart_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "flatart"
 path = "src/main.rs"
 
 [dependencies]
+flatart-domain.workspace = true
 flatart-pipeline.workspace = true
+serde_json.workspace = true
+clap = { version = "4.6.7", features = ["derive"] }
+png = "0.18.1"
+
+# The concrete adapters. Only the wiring crates name these.
+flatart-raster = { path = "../flatart-raster" }
+flatart-quant-kmeans = { path = "../flatart-quant-kmeans" }
+flatart-mapping = { path = "../flatart-mapping" }
+flatart-trace-graph = { path = "../flatart-trace-graph" }
+flatart-fit-kurbo = { path = "../flatart-fit-kurbo" }
+flatart-mesh = { path = "../flatart-mesh" }
+flatart-tri-itriangle = { path = "../flatart-tri-itriangle" }
+flatart-svg = { path = "../flatart-svg" }
+flatart-3mf = { path = "../flatart-3mf" }
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+proptest.workspace = true
+zip = { version = "9.5.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [lints]
 workspace = true

@@ -2,8 +2,10 @@
 //! step 3): merges detected colours into output colours, then replays the
 //! edit log on top.
 //!
-//! - `auto`: the automatic first pass: merges the most similar colours in
-//!   OKLab down to the user's count, and records the merge order.
+//! - `auto`: the automatic first pass: folds edge tones into a neighbour,
+//!   merges the most similar colours in OKLab down to the user's count, and
+//!   records the merge order.
+//! - `layout`: interior pixels and shared borders per detected colour.
 //! - `replay`: applies each active edit-log operation, or reports why not.
 //! - `names`: automatic names from the nearest common colour name.
 //! - `base`: the default base colour.
@@ -11,6 +13,7 @@
 mod auto;
 mod base;
 mod colour_space;
+mod layout;
 mod mapper;
 mod names;
 mod rematch;

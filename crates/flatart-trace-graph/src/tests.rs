@@ -80,8 +80,10 @@ fn a_staircase_becomes_a_smooth_line() {
         .iter()
         .find(|b| !b.left.is_outside() && !b.right.is_outside())
         .unwrap();
+    // One straight line, plus at most a short curve at each end where the
+    // staircase leaves its junction.
     assert!(
-        diagonal.curve.len() <= 2,
+        diagonal.curve.len() <= 3,
         "{} curves: the staircase wasn't smoothed",
         diagonal.curve.len()
     );

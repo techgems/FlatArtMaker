@@ -5,9 +5,9 @@ Turn a flat-colour, logo-style image into a colour-separated, flat-backed 3MF re
 ## Scope and constraints
 - **Input:** one raster image (PNG, JPG or WebP). A transparent background marks "outside the piece".
 - **Supported art:** flat, vector-like art. The UI says this before upload; photos and gradients are out of scope.
-- **Colour count:** the user chooses how many output colours to print, from 1 to a hard limit of **16**. Printing constraints mean most pieces use far fewer. The image can contain more colours: similar tones (two purples) are merged to reach the user's count, automatically and then by hand.
+- **Colour count:** the user chooses how many output colours to print, from 1 to a hard limit of **16**. Printing constraints mean most pieces use far fewer. The image can contain more colours: similar tones (two purples) are merged to reach the user's count, automatically and then by hand. The in-between tones that edge smoothing makes are folded into a neighbour and never use up the count.
 - **Outputs:**
-  - a `.3mf` (primary) that opens as separate bodies, one per output colour, each on its colour's extruder (output colour slot *n* on extruder *n*). It comes in two formats, picked at download: one for **PrusaSlicer**, and one for **Bambu Studio and Orca-based slicers**. Exact behaviour in every other slicer is out of scope.
+  - a `.3mf` (primary) that opens as separate bodies, one per output colour, each on its colour's extruder (output colour slot *n* on extruder *n*). Slots count only the output colours that reach the model: an empty colour takes no slot, so the extruders run 1, 2, 3, … without gaps. It comes in two formats, picked at download: one for **PrusaSlicer**, and one for **Bambu Studio and Orca-based slicers**. Exact behaviour in every other slicer is out of scope.
   - a `.step` of the same model with real curves, so it can be edited in CAD (secondary). It must open cleanly in **Fusion**; anything that passes there is expected to work in Onshape.
   - the generated colour `.svg` (bonus)
 - **No server:** nothing is uploaded and all processing happens on the client.
@@ -111,7 +111,7 @@ fixtures/                  test images and golden outputs
 - **Choosing the slicer:** the 3MF exporter is built with a `Box<dyn SlicerDialect>`. The wiring crates pick `prusa` or `bambu` from the CLI's `--slicer` flag or the UI's slicer choice.
 - **`SlicerDialect` contract:**
   - one part per output colour (plus the base when B > 0), named after the colour
-  - output colour slot *n* on extruder *n*
+  - output colour slot *n* on extruder *n*, counting only colours that have a part, so there are no gaps
   - a `3D/3dmodel.model` entry is always present, and no paths repeat
   - deterministic output
 
@@ -163,8 +163,9 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    - Every pixel is assigned to its nearest detected colour, producing a *detected label map*.
    - **Eyedropper pins:** a colour picked with the eyedropper in the editor joins detection as a fixed centre that k-means can't move. This catches small details the automatic pass would blur into a neighbour, like a tongue inside a cheek.
 3. **Map colours (user-editable):** every detected colour is mapped to exactly one **output colour**, a numbered filament slot. Mapping is many-to-one, and there are **16 output colours at most**.
-   - **Automatic first pass (by count only):** the closest pair of groups in OKLab (each group at its pixel-weighted mean colour) is merged until no more than the user's **"Output colours"** count remain. There is no ΔE threshold: the user's count is the only stop. Each group becomes one output colour, slots ordered by pixel count. This is only a starting point.
-   - **Similarity map:** the merges continue past the user's count down to a single group, and the full merge order (which two groups joined, and how far apart they were in ΔE) is returned as a `SimilarityTree`. From it the editor can show which tones are similar at any count, and which two groups merge next if the count drops by one. Edits never change it: it describes the detected colours only.
+   - **Edge tones fold first:** a detected colour with no interior pixel (none whose 8 neighbours all share it) is an *edge tone*, an in-between colour made by edge smoothing. Each edge tone joins the group it shares the longest border with, among groups that have interior pixels. One that borders none joins the closest in OKLab. Edge tones never count as colours, so fewer than the user's count may remain. If no colour has an interior pixel, nothing folds.
+   - **Automatic first pass (by count only):** then the closest pair of groups in OKLab (each group at its pixel-weighted mean colour) is merged until no more than the user's **"Output colours"** count remain. There is no ΔE threshold: the user's count is the only stop. Each group becomes one output colour, slots ordered by pixel count. This is only a starting point.
+   - **Similarity map:** the merges continue past the user's count down to a single group, and the full merge order (which two groups joined, and how far apart they were in ΔE) is returned as a `SimilarityTree`. The merge order starts with the edge-tone folds. From it the editor can show which tones are similar at any count, and which two groups merge next if the count drops by one. Edits never change it: it describes the detected colours only.
    - **User control:** in the colour-mapping editor (see **UI**), the user can point any detected colour at any output colour. Colours the user adds count toward the 16 limit, not toward their "Output colours" count.
    - **Result:** an *output label map*.
 4. **Clean up:** on the output label map, with 4-connected areas (as in tracing):
@@ -189,7 +190,7 @@ Each stage caches its result, so a slider change only re-runs the stages after i
    | **Pin detected colour** | The eyedropper addition from step 2. |
    | **Reset mapping** | Brings back the automatic mapping. Painted areas are kept unless the user also clears them. |
 
-   - **Empty output colours:** an output colour with nothing mapped or painted to it is kept in the editor, with a warning, but left out of the exports.
+   - **Empty output colours:** an output colour with nothing mapped or painted to it is kept in the editor, with a warning, but left out of the exports, and takes no filament slot. The same goes for a colour that clean-up or the thin-feature fix removes completely: what counts is whether the colour has a part in the model.
    - **What edits re-run:**
      - Map, pin and delete re-run from step 3.
      - Paint re-runs from step 5.
@@ -226,7 +227,7 @@ Each stage caches its result, so a slider change only re-runs the stages after i
      - The part layout and the slicer-specific files come from the chosen `SlicerDialect`. Neither family reads the other's format correctly (milestone 0):
        - **`prusa`:** one mesh holding every part, plus `Metadata/Slic3r_PE_model.config` with each part's triangle range, name and extruder.
        - **`bambu`** (Bambu Studio and Orca-based slicers): one mesh object per part under a parent object, plus `Metadata/model_settings.config` with each part's name and extruder.
-     - Both dialects put output colour slot *n* on extruder *n*.
+     - Both dialects put output colour slot *n* on extruder *n*. Empty colours take no slot, so the extruders have no gaps.
    - **STEP (AP214):** built from the shared-border map, with no straight-segment approximation.
      - **Bodies:** one solid per island, plus the base as a solid of its own when B > 0. Units are mm.
      - **Names matter; colour doesn't.** Bodies are grouped and named by output colour, so anyone editing the file can recolour a whole colour at once in their own CAD tool:
@@ -263,14 +264,14 @@ Its layout follows MakerWorld's lightbox-maker "Edit Color Details" dialog: a la
   - **Overlay controls, bottom-left:** an undo/redo group and a zoom in/out group. The mouse wheel also zooms, and dragging pans.
   - Hovering a row in the Mapping list highlights that detected colour's pixels on the canvas.
 - **Colour panel (right):**
-  - **"Colours in use":** a row of **numbered chips**, one per output colour. The number is the filament slot, and the chip's fill and number colour match the colour.
+  - **"Colours in use":** a row of **numbered chips**, one per output colour. The number is the filament slot, and the chip's fill and number colour match the colour. An empty colour's chip shows its warning instead of a number, and the chips after it number on without a gap.
     - **Header actions:** **+** adds an output colour (up to 16). The **brush** icon toggles paint mode.
     - **Clicking a chip** opens its details: a colour picker with hex input and an eyedropper, the name, a "base" option, and delete. Delete asks where its colours should go.
     - **Dragging chips** reorders them, and so the filament slots.
     - An "n / 16" counter sits next to the chips.
   - **"Colour count":** the user's "Output colours" count (1–16), editable here. Changing it re-runs the automatic mapping.
     - Detected colours are grouped by the similarity map, so similar tones sit together.
-    - The editor previews which two groups would merge next if the count dropped by one.
+    - The editor previews which two groups would merge next if the count dropped by one. When the count is above the number of colours that aren't edge tones, dropping it changes nothing, so there is no preview.
   - **"Mapping":** a two-column grid with one cell per detected colour, sorted by coverage. Each cell shows the detected colour as a **circle → the output chip** it maps to.
     - Clicking the target chip opens a picker of the output colours, plus "+ New colour" (disabled at 16).
     - **"Reset mapping"** sits in the section header.

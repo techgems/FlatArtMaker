@@ -8,12 +8,16 @@ use flatart_domain::{Detection, EditLog, MappedColours, Result};
 /// - **Palette:** at most `MAX_OUTPUT_COLOURS` (16) output colours, in slot
 ///   order. Colours nothing maps or paints to are kept (the editor shows them
 ///   with a warning).
-/// - **Automatic pass:** the most similar pair of groups (pixel-weighted mean
-///   colours, smallest ΔE) is merged, over and over, until at most
-///   `settings.target` groups remain: the user's colour count. Group *n* in
-///   slot order gets `OutputColourId(n)`; added colours use
+/// - **Automatic pass:** first, each *edge tone* (a detected colour with no
+///   interior pixel, i.e. none whose 8 neighbours all share it) joins the
+///   group with interior pixels it shares the longest border with. Edge
+///   tones never count as colours. Then the most similar pair of groups
+///   (pixel-weighted mean colours, smallest ΔE) is merged, over and over,
+///   until at most `settings.target` groups remain: the user's colour count.
+///   Group *n* in slot order gets `OutputColourId(n)`; added colours use
 ///   `OutputColourId::FIRST_ADDED` and up.
-/// - **Similarity:** `similarity` is that merge order carried on down to one
+/// - **Similarity:** `similarity` is that merge order (edge-tone folds
+///   first, counted by `similarity.edge_tones()`) carried on down to one
 ///   group, over every detected colour. With no edits, two detected colours
 ///   share an output exactly when `similarity.groups(target)` puts them in
 ///   the same group.

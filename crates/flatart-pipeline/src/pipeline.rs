@@ -163,6 +163,21 @@ impl Pipeline {
         self.caches.mesh.get(key)
     }
 
+    /// A top-down picture of the painted art in its output colours, cropped
+    /// to the art and no bigger than `max_side` on either side. For formats
+    /// that embed a thumbnail.
+    pub fn thumbnail(&mut self, max_side: u32) -> Result<RgbaImage> {
+        let (loaded, mapped, painted) = (
+            self.ensure_loaded()?,
+            self.ensure_mapped()?,
+            self.ensure_painted()?,
+        );
+        let bounds = self.caches.loaded.get(loaded)?.bounds;
+        let palette = &self.caches.mapped.get(mapped)?.palette;
+        let labels = self.caches.painted.get(painted)?;
+        crate::thumbnail::render(labels, bounds, palette, max_side)
+    }
+
     /// Stage 9: the file from the exporter with this id. Not cached: exports
     /// run only on a download.
     pub fn export(&mut self, id: &str, options: &ExportOptions) -> Result<Vec<u8>> {

@@ -1,5 +1,7 @@
 # 08: Border tracer
 
+**Completed:** 2026-11-10 · commit a5a3c65
+
 **Depends on:** 04, 09 · **Spec:** Core data model, Pipeline step 7 · **Crate:** `flatart-trace-graph`
 
 ## Goal

@@ -1,5 +1,6 @@
 //! How similar the detected colours are: the order the automatic mapping
-//! merges them in, from the closest pair down to one group.
+//! merges them in. Edge tones (colours only found along borders) fold into
+//! a neighbour first, then the closest pair merges, down to one group.
 //!
 //! The colour-mapping editor uses it to show which tones belong together and
 //! what would merge next if the user asks for fewer colours.
@@ -21,16 +22,24 @@ pub struct Merge {
 }
 
 /// The full merge order over the detected colours.
+///
+/// The first [`edge_tones`](Self::edge_tones) merges are edge-tone folds:
+/// an in-between colour that edge smoothing made joins a neighbour. Folds
+/// are always applied, so they never count as colours.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct SimilarityTree {
     colours: usize,
+    edge_tones: usize,
     merges: Vec<Merge>,
 }
 
 impl SimilarityTree {
+    /// `edge_tones` is how many of the first merges are edge-tone folds.
+    ///
     /// Fails unless there are exactly `colours - 1` merges (none for zero
-    /// colours) and each joins two groups that exist and haven't been merged yet.
-    pub fn new(colours: usize, merges: Vec<Merge>) -> Result<Self> {
+    /// colours), each joins two groups that exist and haven't been merged
+    /// yet, and fewer folds than colours (a fold needs a colour to join).
+    pub fn new(colours: usize, edge_tones: usize, merges: Vec<Merge>) -> Result<Self> {
         let invalid = |reason: String| Error::InvalidValue {
             what: "similarity tree",
             reason,
@@ -39,6 +48,11 @@ impl SimilarityTree {
             return Err(invalid(format!(
                 "{} merges for {colours} colours",
                 merges.len()
+            )));
+        }
+        if edge_tones > 0 && edge_tones >= colours {
+            return Err(invalid(format!(
+                "{edge_tones} edge tones for {colours} colours"
             )));
         }
         if colours + merges.len() > usize::from(u16::MAX) {
@@ -54,7 +68,11 @@ impl SimilarityTree {
             used[a] = true;
             used[b] = true;
         }
-        Ok(Self { colours, merges })
+        Ok(Self {
+            colours,
+            edge_tones,
+            merges,
+        })
     }
 
     /// How many detected colours the tree covers.
@@ -62,16 +80,26 @@ impl SimilarityTree {
         self.colours
     }
 
-    /// In order, closest pair first.
+    /// How many detected colours are edge tones: the first this many merges
+    /// fold them into a neighbour.
+    pub fn edge_tones(&self) -> usize {
+        self.edge_tones
+    }
+
+    /// In order: the edge-tone folds, then closest pair first.
     pub fn merges(&self) -> &[Merge] {
         &self.merges
     }
 
     /// The groups left after merging down to `count` (at least 1), as
-    /// detected labels. Groups are ordered by their lowest label, and labels
-    /// within a group are ascending.
+    /// detected labels. Edge tones are always folded, so fewer than `count`
+    /// groups remain when fewer colours aren't edge tones. Groups are
+    /// ordered by their lowest label, and labels within a group ascend.
     pub fn groups(&self, count: usize) -> Vec<Vec<Label>> {
-        let steps = self.colours.saturating_sub(count.max(1));
+        let steps = self
+            .colours
+            .saturating_sub(count.max(1))
+            .max(self.edge_tones);
         let mut members: Vec<Vec<Label>> =
             (0..self.colours).map(|i| vec![Label(i as u16)]).collect();
         for merge in &self.merges[..steps] {
@@ -88,8 +116,13 @@ impl SimilarityTree {
     }
 
     /// The merge that takes `count` groups down to `count - 1`, if any.
+    /// `None` while `count` is above the colours that aren't edge tones,
+    /// since lowering it there changes nothing.
     pub fn next_merge(&self, count: usize) -> Option<&Merge> {
         let step = self.colours.checked_sub(count)?;
+        if step < self.edge_tones {
+            return None;
+        }
         self.merges.get(step)
     }
 }
@@ -109,6 +142,7 @@ mod tests {
     fn tree() -> SimilarityTree {
         SimilarityTree::new(
             4,
+            0,
             vec![merge(0, 2, 1.0), merge(1, 3, 5.0), merge(4, 5, 30.0)],
         )
         .unwrap()
@@ -143,12 +177,46 @@ mod tests {
 
     #[test]
     fn rejects_malformed_trees() {
-        assert!(SimilarityTree::new(0, vec![]).is_ok());
-        assert!(SimilarityTree::new(1, vec![]).is_ok());
-        assert!(SimilarityTree::new(2, vec![]).is_err(), "too few merges");
-        assert!(SimilarityTree::new(2, vec![merge(0, 0, 1.0)]).is_err());
-        assert!(SimilarityTree::new(2, vec![merge(0, 2, 1.0)]).is_err());
+        assert!(SimilarityTree::new(0, 0, vec![]).is_ok());
+        assert!(SimilarityTree::new(1, 0, vec![]).is_ok());
+        assert!(SimilarityTree::new(2, 0, vec![]).is_err(), "too few merges");
+        assert!(SimilarityTree::new(2, 0, vec![merge(0, 0, 1.0)]).is_err());
+        assert!(SimilarityTree::new(2, 0, vec![merge(0, 2, 1.0)]).is_err());
         let reused = vec![merge(0, 1, 1.0), merge(0, 2, 1.0)];
-        assert!(SimilarityTree::new(3, reused).is_err());
+        assert!(SimilarityTree::new(3, 0, reused).is_err());
+        let two = || vec![merge(0, 1, 1.0)];
+        assert!(SimilarityTree::new(2, 1, two()).is_ok());
+        assert!(
+            SimilarityTree::new(2, 2, two()).is_err(),
+            "a fold needs a colour to join"
+        );
+    }
+
+    /// Like `tree()`, but 2 and 3 are edge tones folded into 0 and 1.
+    fn folded() -> SimilarityTree {
+        SimilarityTree::new(
+            4,
+            2,
+            vec![merge(0, 2, 40.0), merge(1, 3, 35.0), merge(4, 5, 30.0)],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn edge_tones_are_always_folded() {
+        let t = folded();
+        assert_eq!(t.edge_tones(), 2);
+        assert_eq!(labels(t.groups(9)), [[0, 2], [1, 3]]);
+        assert_eq!(labels(t.groups(3)), [[0, 2], [1, 3]]);
+        assert_eq!(labels(t.groups(1)), [[0, 1, 2, 3]]);
+    }
+
+    #[test]
+    fn folds_are_never_previewed_as_the_next_merge() {
+        let t = folded();
+        assert_eq!(t.next_merge(4), None);
+        assert_eq!(t.next_merge(3), None);
+        assert_eq!(t.next_merge(2), Some(&merge(4, 5, 30.0)));
+        assert_eq!(t.next_merge(1), None);
     }
 }

@@ -191,10 +191,27 @@ impl OutputPalette {
         self.colours.iter().find(|c| c.id == id)
     }
 
-    pub fn slot(&self, id: OutputColourId) -> Option<Slot> {
-        let index = self.colours.iter().position(|c| c.id == id)?;
+    /// The filament slot of `id` among the colours `in_use`: colours that
+    /// reach no part take no slot, so the slots run 1, 2, 3, … without gaps,
+    /// in palette order. `None` when `id` isn't in the palette or in use.
+    pub fn slot(
+        &self,
+        id: OutputColourId,
+        in_use: impl Fn(OutputColourId) -> bool,
+    ) -> Option<Slot> {
+        if !in_use(id) {
+            return None;
+        }
+        let before = self
+            .colours
+            .iter()
+            .map(|c| c.id)
+            .take_while(|&c| c != id)
+            .filter(|&c| in_use(c))
+            .count();
+        self.get(id)?;
         // At most 16 colours, so the slot always fits.
-        u8::try_from(index + 1).ok().map(Slot)
+        u8::try_from(before + 1).ok().map(Slot)
     }
 }
 
@@ -275,8 +292,21 @@ mod tests {
         assert!(OutputPalette::new(ok.clone(), Some(OutputColourId(3))).is_err());
         assert!(OutputPalette::new(vec![colour(u16::MAX, "Black")], None).is_err());
         let palette = OutputPalette::new(ok, Some(OutputColourId(2))).unwrap();
-        assert_eq!(palette.slot(OutputColourId(2)).map(Slot::get), Some(2));
-        assert_eq!(palette.slot(OutputColourId(9)), None);
+        let all = |_| true;
+        assert_eq!(palette.slot(OutputColourId(2), all).map(Slot::get), Some(2));
+        assert_eq!(palette.slot(OutputColourId(9), all), None);
+    }
+
+    #[test]
+    fn empty_colours_take_no_slot() {
+        let palette = OutputPalette::new(
+            vec![colour(1, "Black"), colour(2, "White"), colour(3, "Red")],
+            None,
+        )
+        .unwrap();
+        let in_use = |id: OutputColourId| id != OutputColourId(2);
+        let slot = |id| palette.slot(OutputColourId(id), in_use).map(Slot::get);
+        assert_eq!([slot(1), slot(2), slot(3)], [Some(1), None, Some(2)]);
     }
 
     #[test]

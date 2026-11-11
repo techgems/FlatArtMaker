@@ -1,7 +1,9 @@
-//! The automatic first pass: merge the most similar detected colours down
-//! to the user's colour count, recording the full merge order.
+//! The automatic first pass: fold edge tones into a neighbour, then merge
+//! the most similar detected colours down to the user's colour count,
+//! recording the full merge order.
 
 use crate::colour_space::{Lab, delta_e, lab, to_rgb};
+use crate::layout::Layout;
 use flatart_domain::settings::MappingSettings;
 use flatart_domain::{
     DeltaE, DetectedPalette, GroupId, Label, Merge, OutputColourId, Result, Rgb, SimilarityTree,
@@ -24,8 +26,13 @@ pub(crate) struct Auto {
     pub similarity: SimilarityTree,
 }
 
-pub(crate) fn auto_map(detected: &DetectedPalette, settings: &MappingSettings) -> Result<Auto> {
-    let similarity = similarity_tree(detected)?;
+pub(crate) fn auto_map(
+    detected: &DetectedPalette,
+    layout: &Layout,
+    settings: &MappingSettings,
+) -> Result<Auto> {
+    let similarity = similarity_tree(detected, layout)?;
+    // The tree always applies the edge-tone folds, so they never count.
     let groups = similarity.groups(usize::from(settings.target.get()));
     let mut groups: Vec<Summary> = groups
         .iter()
@@ -100,11 +107,22 @@ struct Node {
     id: GroupId,
     colour: Lab,
     pixels: u64,
+    /// Interior pixels over all members; 0 for an unfolded edge tone.
+    interior: u64,
+    /// Detected labels in the group.
+    members: Vec<usize>,
 }
 
-/// Merges the closest pair (by pixel-weighted mean colour) until one group
-/// remains. Ties go to the first pair in group order.
-fn similarity_tree(detected: &DetectedPalette) -> Result<SimilarityTree> {
+/// Builds the merge order.
+///
+/// 1. **Edge tones fold first.** While an edge tone (no interior pixel) and
+///    a group with interior pixels remain, the pair sharing the longest
+///    border joins (an edge tone touching none joins the closest group).
+/// 2. **Then by similarity:** the closest pair (by pixel-weighted mean
+///    colour) merges until one group remains.
+///
+/// Ties go to the first pair in group order.
+fn similarity_tree(detected: &DetectedPalette, layout: &Layout) -> Result<SimilarityTree> {
     let n = detected.colours().len();
     let mut nodes: Vec<Node> = detected
         .colours()
@@ -114,22 +132,60 @@ fn similarity_tree(detected: &DetectedPalette) -> Result<SimilarityTree> {
             id: GroupId(i as u16),
             colour: lab(c.colour),
             pixels: c.pixels,
+            interior: layout.interior.get(i).copied().unwrap_or(0),
+            members: vec![i],
         })
         .collect();
     let mut merges = Vec::with_capacity(n.saturating_sub(1));
-    while let Some((i, j, distance)) = closest_pair(&nodes) {
-        let b = nodes.remove(j);
-        let a = &mut nodes[i];
-        merges.push(Merge {
-            joined: [a.id, b.id],
-            distance: DeltaE(distance),
-        });
-        a.colour = weighted_mean(&[(a.colour, a.pixels), (b.colour, b.pixels)]);
-        a.pixels += b.pixels;
-        // `SimilarityTree::new` rejects counts that don't fit a u16.
-        a.id = GroupId((n + merges.len() - 1) as u16);
+    while let Some((i, j, distance)) = edge_fold(&nodes, layout) {
+        merge(&mut nodes, &mut merges, n, i, j, distance);
     }
-    SimilarityTree::new(n, merges)
+    let folds = merges.len();
+    while let Some((i, j, distance)) = closest_pair(&nodes) {
+        merge(&mut nodes, &mut merges, n, i, j, distance);
+    }
+    SimilarityTree::new(n, folds, merges)
+}
+
+/// Joins `nodes[j]` into `nodes[i]` (`i < j`) and records the merge.
+fn merge(nodes: &mut Vec<Node>, merges: &mut Vec<Merge>, n: usize, i: usize, j: usize, d: f64) {
+    let b = nodes.remove(j);
+    let a = &mut nodes[i];
+    merges.push(Merge {
+        joined: [a.id, b.id],
+        distance: DeltaE(d),
+    });
+    a.colour = weighted_mean(&[(a.colour, a.pixels), (b.colour, b.pixels)]);
+    a.pixels += b.pixels;
+    a.interior += b.interior;
+    a.members.extend(b.members);
+    // `SimilarityTree::new` rejects counts that don't fit a u16.
+    a.id = GroupId((n + merges.len() - 1) as u16);
+}
+
+/// The next edge-tone fold as `(i, j, ΔE)` with `i < j`: the edge tone and
+/// group with interior pixels that share the longest border, or the closest
+/// such pair when no edge tone borders one. `None` when either kind is gone.
+fn edge_fold(nodes: &[Node], layout: &Layout) -> Option<(usize, usize, f64)> {
+    let border = |e: &Node, g: &Node| -> u64 {
+        let row = layout.borders.get(e.members[0]);
+        g.members
+            .iter()
+            .map(|&m| row.and_then(|r| r.get(m)).copied().unwrap_or(0))
+            .sum()
+    };
+    // Best by (longest border, then smallest ΔE); first pair wins ties.
+    let mut best: Option<(u64, f64, usize, usize)> = None;
+    for (e, edge) in nodes.iter().enumerate().filter(|(_, x)| x.interior == 0) {
+        for (g, group) in nodes.iter().enumerate().filter(|(_, x)| x.interior > 0) {
+            let key = (border(edge, group), delta_e(edge.colour, group.colour));
+            let better = best.is_none_or(|(b, d, _, _)| key.0 > b || (key.0 == b && key.1 < d));
+            if better {
+                best = Some((key.0, key.1, e, g));
+            }
+        }
+    }
+    best.map(|(_, d, e, g)| (e.min(g), e.max(g), d))
 }
 
 /// The two closest nodes as `(i, j, ΔE)` with `i < j`; ties go to the
@@ -169,7 +225,7 @@ mod tests {
     }
 
     fn auto(p: &DetectedPalette, target: u8) -> Auto {
-        auto_map(p, &mapping_settings(target)).unwrap()
+        auto_map(p, &Layout::default(), &mapping_settings(target)).unwrap()
     }
 
     #[test]
@@ -215,6 +271,68 @@ mod tests {
     fn colours_without_pixels_still_get_a_target() {
         let p = palette(&[(0.3, 0), (0.31, 0)]);
         assert_eq!(ids(&auto(&p, 1)), [0, 0]);
+    }
+
+    /// `interior[i]` and symmetric `(a, b, length)` borders.
+    fn layout(interior: &[u64], borders: &[(usize, usize, u64)]) -> Layout {
+        let mut grid = vec![vec![0; interior.len()]; interior.len()];
+        for &(a, b, n) in borders {
+            grid[a][b] = n;
+            grid[b][a] = n;
+        }
+        Layout {
+            interior: interior.to_vec(),
+            borders: grid,
+        }
+    }
+
+    fn auto_in(p: &DetectedPalette, l: &Layout, target: u8) -> Auto {
+        auto_map(p, l, &mapping_settings(target)).unwrap()
+    }
+
+    #[test]
+    fn edge_tones_fold_before_distinct_colours_merge() {
+        // Dark and light areas, a mid-grey edge tone along their border, and
+        // a small light detail 10 ΔE from the light area.
+        let p = palette(&[(0.0, 1000), (0.9, 1000), (0.45, 100), (0.8, 20)]);
+        let l = layout(&[800, 800, 0, 5], &[(0, 2, 50), (1, 2, 60), (1, 3, 18)]);
+        assert_eq!(
+            ids(&auto_in(&p, &l, 3)),
+            [1, 0, 0, 2],
+            "the tone joins its longest border"
+        );
+        assert_eq!(ids(&auto_in(&p, &l, 2)), [1, 0, 0, 0]);
+        let tree = auto_in(&p, &l, 3).similarity;
+        assert_eq!(
+            tree.merges()[0].joined.map(|g| g.0),
+            [1, 2],
+            "the fold comes first"
+        );
+        assert_eq!(tree.edge_tones(), 1);
+    }
+
+    #[test]
+    fn edge_tones_never_count_as_colours() {
+        let p = palette(&[(0.0, 1000), (0.9, 1000), (0.45, 100)]);
+        let l = layout(&[800, 800, 0], &[(0, 2, 50), (1, 2, 60)]);
+        let a = auto_in(&p, &l, 8);
+        assert_eq!(a.outputs.len(), 2);
+        assert_eq!(ids(&a), [1, 0, 0]);
+    }
+
+    #[test]
+    fn edge_tones_fold_through_other_edge_tones() {
+        // 3 only touches 2, which folds into 1 first; 3 then follows it.
+        let p = palette(&[(0.0, 1000), (0.9, 1000), (0.7, 100), (0.3, 50)]);
+        let l = layout(&[800, 800, 0, 0], &[(1, 2, 60), (2, 3, 40)]);
+        assert_eq!(ids(&auto_in(&p, &l, 8)), [1, 0, 0, 0]);
+    }
+
+    #[test]
+    fn an_edge_tone_bordering_no_area_joins_the_closest() {
+        let p = palette(&[(0.0, 1000), (0.9, 1000), (0.3, 100)]);
+        let l = layout(&[800, 800, 0], &[]);
+        assert_eq!(ids(&auto_in(&p, &l, 8)), [0, 1, 0]);
     }
 
     #[test]

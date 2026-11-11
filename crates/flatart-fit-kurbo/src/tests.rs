@@ -179,3 +179,81 @@ fn random_polylines_stay_within_tolerance_and_joined() {
         );
     }
 }
+
+/// From Jolteon: a traced dot whose sides are exactly straight. kurbo never
+/// finished fitting those.
+#[test]
+fn a_loop_with_straight_stretches_finishes() {
+    let raw = [
+        (652.0, 549.0),
+        (652.5, 549.25),
+        (653.0, 549.5),
+        (653.5, 549.75),
+        (654.0, 550.0),
+        (654.5, 550.25),
+        (655.0, 550.5),
+        (655.5, 551.0),
+        (655.75, 551.5),
+        (656.0, 552.5),
+        (655.75, 553.5),
+        (655.5, 554.0),
+        (655.0, 554.5),
+        (654.5, 555.0),
+        (654.0, 555.5),
+        (653.5, 555.75),
+        (652.5, 556.0),
+        (651.5, 555.75),
+        (651.0, 555.5),
+        (650.5, 555.0),
+        (650.0, 554.5),
+        (649.5, 554.0),
+        (649.25, 553.5),
+        (649.0, 553.0),
+        (649.25, 552.5),
+        (649.5, 552.0),
+        (649.75, 551.5),
+        (650.0, 551.0),
+        (650.25, 550.5),
+        (650.5, 550.0),
+        (651.0, 549.5),
+        (651.5, 549.25),
+        (652.0, 549.0),
+    ];
+    let points: Vec<_> = raw.iter().map(|&(x, y)| p(x, y)).collect();
+    let settings = fixtures::fit_settings();
+    let curves = KurboFitter.fit(&points, &settings).unwrap();
+    assert!(deviation::within(&curves, &points, 0.5));
+}
+
+/// Like the tracer's input: the midpoints of a random pixel staircase, so
+/// there are many exactly straight stretches.
+#[test]
+fn random_staircases_finish_within_tolerance() {
+    let mut rng = Lcg(11);
+    for case in 0..300 {
+        let (sx, sy) = (
+            if rng.unit() < 0.5 { 1.0 } else { -1.0 },
+            if rng.unit() < 0.5 { 1.0 } else { -1.0 },
+        );
+        let mut at = (0.0, 0.0);
+        let mut points = vec![p(0.0, 0.0)];
+        for r in 0..(4 + (rng.unit() * 40.0) as usize) {
+            let len = 1.0 + (rng.unit() * 5.0).floor();
+            let step = if r % 2 == 0 {
+                (sx * len, 0.0)
+            } else {
+                (0.0, sy * len)
+            };
+            let mid = (at.0 + step.0 / 2.0, at.1 + step.1 / 2.0);
+            at = (at.0 + step.0, at.1 + step.1);
+            points.push(p(mid.0, mid.1));
+        }
+        points.push(p(at.0, at.1));
+        let settings = fixtures::fit_settings();
+        let curves = KurboFitter.fit(&points, &settings).unwrap();
+        assert!(
+            deviation::within(&curves, &points, 0.5 + 1e-9),
+            "case {case}"
+        );
+    }
+}

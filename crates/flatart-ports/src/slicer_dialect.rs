@@ -12,7 +12,8 @@ pub const MODEL_PATH: &str = "3D/3dmodel.model";
 ///
 /// # Contract
 /// - **Parts:** one part per `MeshPart`, named by `MeshModel::part_name`,
-///   on extruder `MeshModel::slot` (output colour slot *n* on extruder *n*).
+///   on extruder `MeshModel::slot` (output colour slot *n* on extruder *n*;
+///   colours with no part take no slot).
 /// - **Files:** always includes [`MODEL_PATH`]. Paths are relative, use `/`,
 ///   don't repeat, and never collide with the exporter's own files.
 /// - **Deterministic.**

@@ -1,0 +1,17 @@
+[package]
+name = "flatart-svg"
+description = "Exporter<VectorModel> for SVG: one path per face from the shared Béziers, a layer per output colour. In-house string writer, no dependencies."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+
+[lints]
+workspace = true

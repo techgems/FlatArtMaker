@@ -52,7 +52,67 @@ pub fn cases() -> Vec<(&'static str, PolygonWithHoles)> {
                 ],
             },
         ),
+        (
+            "collinear points",
+            PolygonWithHoles {
+                outer: ring(&[
+                    (0.0, 0.0),
+                    (5.0, 0.0),
+                    (10.0, 0.0),
+                    (10.0, 10.0),
+                    (0.0, 10.0),
+                ]),
+                holes: vec![],
+            },
+        ),
+        (
+            "hole touching the outer ring",
+            PolygonWithHoles {
+                outer: ring(&[
+                    (0.0, 0.0),
+                    (10.0, 0.0),
+                    (10.0, 10.0),
+                    (0.0, 10.0),
+                    (0.0, 5.0),
+                ]),
+                holes: vec![ring(&[(0.0, 5.0), (5.0, 3.0), (5.0, 7.0)])],
+            },
+        ),
+        (
+            "holes touching",
+            PolygonWithHoles {
+                outer: ring(&[(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (0.0, 10.0)]),
+                holes: vec![
+                    ring(&[(2.0, 2.0), (10.0, 5.0), (2.0, 8.0)]),
+                    ring(&[(10.0, 5.0), (18.0, 2.0), (18.0, 8.0)]),
+                ],
+            },
+        ),
+        (
+            "outer ring touching itself",
+            PolygonWithHoles {
+                outer: ring(&[
+                    (0.0, 0.0),
+                    (5.0, 5.0),
+                    (10.0, 0.0),
+                    (10.0, 10.0),
+                    (5.0, 5.0),
+                    (0.0, 10.0),
+                ]),
+                holes: vec![],
+            },
+        ),
     ]
+}
+
+/// Each ring's edges, as pairs of positions.
+fn ring_edges(polygon: &PolygonWithHoles) -> Vec<(P, P)> {
+    std::iter::once(&polygon.outer)
+        .chain(&polygon.holes)
+        .flat_map(|ring| {
+            (0..ring.len()).map(move |i| (mm(ring[i]), mm(ring[(i + 1) % ring.len()])))
+        })
+        .collect()
 }
 
 /// Runs every check on `triangulator`.
@@ -103,4 +163,18 @@ pub fn check(polygon: &PolygonWithHoles, triangles: &[[u32; 3]], case: &str) {
         (total - expected).abs() <= 1e-9 * expected.max(1.0),
         "{case}: triangles cover {total} mm² but the polygon is {expected} mm²"
     );
+    for (a, b) in ring_edges(polygon) {
+        let sides = triangles
+            .iter()
+            .flat_map(|tri| (0..3).map(move |k| (tri[k], tri[(k + 1) % 3])))
+            .filter(|&(i, j)| {
+                let (p, q) = (vertices[i as usize], vertices[j as usize]);
+                (p, q) == (a, b) || (p, q) == (b, a)
+            })
+            .count();
+        assert_eq!(
+            sides, 1,
+            "{case}: ring edge {a:?}–{b:?} is a side of {sides} triangles (expected 1)"
+        );
+    }
 }

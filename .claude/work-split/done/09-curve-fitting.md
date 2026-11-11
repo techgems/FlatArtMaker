@@ -1,5 +1,7 @@
 # 09: Curve fitting adapter
 
+**Completed:** 2026-11-10 · commit a5a3c65
+
 **Depends on:** 04 · **Spec:** Pipeline step 7 · **Crate:** `flatart-fit-kurbo`
 
 ## Goal

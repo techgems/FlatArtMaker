@@ -2,6 +2,7 @@
 
 use crate::auto::auto_map;
 use crate::base::edge_majority;
+use crate::layout::Layout;
 use crate::names::auto_name;
 use crate::replay::{Context, Replayed, replay};
 use flatart_domain::settings::MappingSettings;
@@ -11,8 +12,10 @@ use flatart_domain::{
 };
 use flatart_ports::ColourMapper;
 
-/// Merges the most similar detected colours (pixel-weighted) until the
-/// user's colour count is reached, then replays the edit log.
+/// Folds edge tones (detected colours with no interior pixel) into the
+/// neighbour they share the longest border with, merges the most similar
+/// detected colours (pixel-weighted) until the user's colour count is
+/// reached, then replays the edit log.
 ///
 /// A `Map` matches the nearest current detected colour within
 /// [`REMATCH_LIMIT`](crate::REMATCH_LIMIT).
@@ -26,7 +29,8 @@ impl ColourMapper for MergeMapper {
         edits: &EditLog,
         settings: &MappingSettings,
     ) -> Result<MappedColours> {
-        let auto = auto_map(&detection.palette, settings)?;
+        let layout = Layout::of(&detection.labels, detection.palette.colours().len());
+        let auto = auto_map(&detection.palette, &layout, settings)?;
         let cx = Context {
             auto: &auto,
             detected: &detection.palette,
