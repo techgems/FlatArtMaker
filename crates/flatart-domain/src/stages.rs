@@ -4,9 +4,11 @@ use crate::{
     ColourMapping, DetectedPalette, LabelMap, OutputColourId, OutputPalette, Paint, PxPoint,
     RgbaImage, SimilarityTree,
 };
+use serde::Serialize;
 
 /// The bounding box of the non-outside pixels, in source pixels.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct ArtBounds {
     pub x: u32,
     pub y: u32,
@@ -48,7 +50,8 @@ pub struct MappedColours {
 }
 
 /// An edit-log operation that was skipped, so the user can be told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct DroppedEdit {
     /// The operation's position in the edit log.
     pub position: usize,
@@ -56,7 +59,9 @@ pub struct DroppedEdit {
 }
 
 /// Why an operation was skipped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
 pub enum DropReason {
     /// No detected colour is close enough to the one it names, usually after
     /// a setting changed detection.
@@ -79,7 +84,8 @@ pub enum DropReason {
 
 /// A part thinner than the threshold that the fix had to keep, because no
 /// other colour borders it (removing it would change the outline).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct ThinFeature {
     pub at: PxPoint,
     pub colour: OutputColourId,

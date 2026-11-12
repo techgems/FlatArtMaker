@@ -92,6 +92,7 @@ impl PrintScale {
 
 /// All user settings. Versioned, so older saved settings can be migrated.
 #[derive(Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub version: u32,
@@ -174,6 +175,7 @@ impl Settings {
 
 /// How the Load stage decides what is outside the piece.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct LoadSettings {
     /// Pixels with alpha below this are outside.
@@ -193,6 +195,7 @@ impl Default for LoadSettings {
 
 /// The collapsed "Advanced" section.
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Advanced {
     pub detected_colours: DetectedColourLimit,
@@ -266,7 +269,9 @@ pub struct MeshSettings {
 }
 
 /// The Z heights: colour layer from B to B + C, base from 0 to B.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct Extrusion {
     pub colour: LayerHeight,
     pub base: Option<LayerHeight>,

@@ -12,7 +12,8 @@ pub const MAX_OUTPUT_COLOURS: usize = 16;
 pub const BASE_NAME: &str = "Base";
 
 /// One colour found by detection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct DetectedColour {
     /// Also the colour's stable ID.
     pub colour: Oklab,
@@ -21,7 +22,8 @@ pub struct DetectedColour {
 }
 
 /// The detected colours. Entry `n` is label `n` of the detected label map.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct DetectedPalette {
     colours: Vec<DetectedColour>,
 }
@@ -54,6 +56,7 @@ impl DetectedPalette {
 
 /// A generated ID that never changes, even when the colour or name does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(transparent)]
 pub struct OutputColourId(pub u16);
 
@@ -68,6 +71,8 @@ impl OutputColourId {
 ///
 /// It names the 3MF part, the STEP component and bodies, and the SVG layer ID.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[cfg_attr(feature = "tsify", tsify(type = "string"))]
 #[serde(try_from = "String", into = "String")]
 pub struct ColourName(String);
 
@@ -113,7 +118,9 @@ impl From<ColourName> for String {
 }
 
 /// A filament slot, starting at 1. Output colour slot *n* prints on extruder *n*.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(transparent)]
 pub struct Slot(u8);
 
 impl Slot {
@@ -124,6 +131,7 @@ impl Slot {
 
 /// One output colour: a filament.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct OutputColour {
     pub id: OutputColourId,
     pub name: ColourName,
@@ -216,6 +224,8 @@ impl OutputPalette {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[cfg_attr(feature = "tsify", tsify(rename = "OutputPalette"))]
 struct OutputPaletteRepr {
     colours: Vec<OutputColour>,
     base: Option<OutputColourId>,
@@ -238,7 +248,8 @@ impl From<OutputPalette> for OutputPaletteRepr {
 }
 
 /// Which output colour each detected colour maps to. Entry `n` is for detected label `n`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct ColourMapping {
     pub targets: Vec<OutputColourId>,
 }

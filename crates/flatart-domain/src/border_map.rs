@@ -1,21 +1,29 @@
 //! The shared-border map (SPEC "Core data model"), in image space.
 
 use crate::{CubicBezier, Label, OutputColourId, Px, PxPoint};
+use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(transparent)]
 pub struct JunctionId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(transparent)]
 pub struct BorderId(pub u32);
 
 /// Where 3 or more areas meet, or 2 areas meet the image edge.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Junction {
     pub at: PxPoint,
 }
 
 /// How a border ends.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub enum BorderEnds {
     /// Runs from one junction to another (possibly the same one).
     Open { start: JunctionId, end: JunctionId },
@@ -24,7 +32,8 @@ pub enum BorderEnds {
 }
 
 /// The curve between two areas. Both areas use this same curve.
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Border {
     pub ends: BorderEnds,
     /// Joined end to end. Never empty.
@@ -47,20 +56,23 @@ impl Border {
 }
 
 /// One border in a loop, possibly walked backwards.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct LoopStep {
     pub border: BorderId,
     pub reversed: bool,
 }
 
 /// A closed chain of borders: each step ends where the next one starts.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Loop {
     pub steps: Vec<LoopStep>,
 }
 
 /// One connected area of one colour: an outer loop plus any holes.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Face {
     pub colour: OutputColourId,
     pub outer: Loop,
@@ -68,7 +80,8 @@ pub struct Face {
 }
 
 /// Junctions, borders and faces, all in source-image pixels.
-#[derive(Debug, Clone, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, PartialEq, Hash, Default, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct BorderMap {
     /// The source image's size.
     pub width: Px,

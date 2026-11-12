@@ -1,5 +1,7 @@
 # 10: Mesh builder
 
+**Completed:** 2026-11-11 · commit c0a55ad
+
 **Depends on:** 04, 08 · **Spec:** Pipeline step 8 · **Crates:** `flatart-tri-itriangle` (adapter), `flatart-mesh`
 
 ## Goal

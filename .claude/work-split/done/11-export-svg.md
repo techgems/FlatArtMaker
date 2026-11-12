@@ -1,5 +1,7 @@
 # 11: SVG exporter
 
+**Completed:** 2026-11-11 · commit c0a55ad
+
 **Depends on:** 08 · **Spec:** Pipeline step 9 (SVG) · **Crate:** `flatart-svg`
 
 ## Goal

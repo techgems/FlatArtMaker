@@ -6,15 +6,19 @@
 //! what would merge next if the user asks for fewer colours.
 
 use crate::{DeltaE, Error, Label, Result};
+use serde::Serialize;
 
 /// A group of detected colours. `0..n` are the `n` detected colours
 /// themselves (the same numbers as their labels); `n + i` is the group
 /// formed by merge `i`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(transparent)]
 pub struct GroupId(pub u16);
 
 /// One step: two groups become one.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Merge {
     pub joined: [GroupId; 2],
     /// How far apart the two groups' colours were (pixel-weighted means).
@@ -26,7 +30,9 @@ pub struct Merge {
 /// The first [`edge_tones`](Self::edge_tones) merges are edge-tone folds:
 /// an in-between colour that edge smoothing made joins a neighbour. Folds
 /// are always applied, so they never count as colours.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct SimilarityTree {
     colours: usize,
     edge_tones: usize,

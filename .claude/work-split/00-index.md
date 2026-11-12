@@ -18,10 +18,10 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [x] 07 | [Raster stages](done/07-raster-stages.md) | 04 | 1 | 2026-11-10 · 2a50404 |
 | - [x] 08 | [Border tracer](done/08-border-tracer.md) | 04, 09 | 1 | 2026-11-10 · a5a3c65 |
 | - [x] 09 | [Curve fitting adapter](done/09-curve-fitting.md) | 04 | 1 | 2026-11-10 · a5a3c65 |
-| - [ ] 10 | [Mesh builder](10-mesh-builder.md) | 04, 08 | 1 | – |
-| - [ ] 11 | [SVG exporter](11-export-svg.md) | 08 | 1 | – |
-| - [ ] 12 | [3MF exporter](12-export-3mf.md) | 02, 10 | 1 | – |
-| - [ ] 13 | [CLI and golden tests](13-cli-and-golden-tests.md) | 05–12 | 1 | – |
+| - [x] 10 | [Mesh builder](done/10-mesh-builder.md) | 04, 08 | 1 | 2026-11-11 · c0a55ad |
+| - [x] 11 | [SVG exporter](done/11-export-svg.md) | 08 | 1 | 2026-11-11 · c0a55ad |
+| - [x] 12 | [3MF exporter](done/12-export-3mf.md) | 02, 10 | 1 | 2026-11-11 · c0a55ad |
+| - [x] 13 | [CLI and golden tests](done/13-cli-and-golden-tests.md) | 05–12 | 1 | 2026-11-11 · c0a55ad |
 | - [ ] 14 | [WASM engine API](14-wasm-engine-api.md) | 13 | 2 | – |
 | - [ ] 15 | [UI shell and controls](15-ui-shell-and-controls.md) | 14 | 2 | – |
 | - [ ] 16 | [Colour-mapping editor](16-colour-mapping-editor.md) | 06, 15 | 3 | – |

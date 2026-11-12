@@ -1,5 +1,7 @@
 # 13: CLI and golden tests
 
+**Completed:** 2026-11-11 · commit c0a55ad
+
 **Depends on:** 05–12 · **Spec:** Milestones 1, Coding standards (tests)
 
 ## Goal

@@ -10,9 +10,24 @@ publish.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+flatart-domain = { workspace = true, features = ["tsify"] }
 flatart-pipeline.workspace = true
 wasm-bindgen.workspace = true
 console_error_panic_hook.workspace = true
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
+tsify.workspace = true
+
+# The concrete adapters, the same as the CLI's. Only the wiring crates name these.
+flatart-raster = { path = "../flatart-raster" }
+flatart-quant-kmeans = { path = "../flatart-quant-kmeans" }
+flatart-mapping = { path = "../flatart-mapping" }
+flatart-trace-graph = { path = "../flatart-trace-graph" }
+flatart-fit-kurbo = { path = "../flatart-fit-kurbo" }
+flatart-mesh = { path = "../flatart-mesh" }
+flatart-tri-itriangle = { path = "../flatart-tri-itriangle" }
+flatart-svg = { path = "../flatart-svg" }
+flatart-3mf = { path = "../flatart-3mf" }
 
 # Not `workspace = true`: wasm-bindgen generates unsafe glue, so this crate
 # relaxes `unsafe_code` from forbid to deny (SPEC.md, Coding standards).
@@ -21,3 +36,6 @@ unsafe_code = "deny"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }
+
+[dev-dependencies]
+flatart-cli = { path = "../flatart-cli" }

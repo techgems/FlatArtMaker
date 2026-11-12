@@ -7,6 +7,7 @@ use std::hash::{Hash, Hasher};
 
 /// An sRGB colour with no alpha, used for display colours.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Rgb {
     pub r: u8,
     pub g: u8,
@@ -81,6 +82,8 @@ impl Hash for Oklab {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[cfg_attr(feature = "tsify", tsify(rename = "Oklab"))]
 struct OklabRepr {
     l: f64,
     a: f64,

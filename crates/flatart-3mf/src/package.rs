@@ -5,7 +5,7 @@ use flatart_domain::{Error, ExportOptions, MeshModel, PackageFile, Result, RgbaI
 use flatart_ports::{Exporter, MODEL_PATH, SlicerDialect};
 use std::io::{Cursor, Write};
 use zip::write::SimpleFileOptions;
-use zip::{CompressionMethod, DateTime, ZipWriter};
+use zip::{CompressionMethod, DateTime, System, ZipWriter};
 
 const THUMBNAIL_PATH: &str = "Metadata/thumbnail.png";
 const RELS_NS: &str = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -116,10 +116,13 @@ fn png(image: &RgbaImage) -> Result<Vec<u8>> {
 
 fn zip(files: &[PackageFile]) -> Result<Vec<u8>> {
     let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
-    // A fixed time, so the same model always gives the same bytes.
+    // A fixed time and host system, so the same model gives the same bytes
+    // on every platform (the zip crate otherwise records DOS on Windows and
+    // Unix elsewhere, WASM included).
     let options = SimpleFileOptions::default()
         .compression_method(CompressionMethod::Deflated)
-        .last_modified_time(DateTime::default());
+        .last_modified_time(DateTime::default())
+        .system(System::Unix);
     for file in files {
         zip.start_file(file.path.as_str(), options)
             .map_err(|e| failed("zip", e))?;

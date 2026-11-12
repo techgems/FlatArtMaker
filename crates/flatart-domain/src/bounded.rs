@@ -51,6 +51,7 @@ macro_rules! bounded_f64 {
         $(#[$meta])*
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
         #[serde(try_from = "f64", into = "f64")]
+        #[cfg_attr(feature = "tsify", derive(tsify::Tsify), tsify(type = "number"))]
         pub struct $name(f64);
 
         impl $name {
@@ -104,6 +105,7 @@ macro_rules! bounded_int {
         $(#[$meta])*
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
         #[serde(try_from = $int_name, into = $int_name)]
+        #[cfg_attr(feature = "tsify", derive(tsify::Tsify), tsify(type = "number"))]
         pub struct $name($int);
 
         impl $name {

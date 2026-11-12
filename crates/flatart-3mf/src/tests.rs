@@ -110,3 +110,18 @@ fn the_package_holds_the_dialect_files_and_the_thumbnail() {
         "{rels}"
     );
 }
+
+#[test]
+fn entries_say_unix_on_every_platform() {
+    // The zip crate records the host system; pinning it keeps the bytes the
+    // same from the Windows CLI, Linux and the browser.
+    let exporter = ThreeMfExporter::new(Box::new(BambuDialect));
+    let bytes = exporter
+        .export(&model(), &ExportOptions::default())
+        .unwrap();
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).unwrap();
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i).unwrap();
+        assert_eq!(entry.system(), zip::System::Unix, "{:?}", entry.name());
+    }
+}

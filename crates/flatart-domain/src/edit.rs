@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Paints the connected area under `at` with `colour`.
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct Paint {
     /// The clicked point, in source-image pixels.
     pub at: PxPoint,
@@ -14,6 +15,7 @@ pub struct Paint {
 
 /// One colour-mapping operation.
 #[derive(Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(tag = "op", rename_all = "camelCase")]
 pub enum EditOp {
     /// Points a detected colour at an output colour.
@@ -151,6 +153,8 @@ impl EditLog {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[cfg_attr(feature = "tsify", tsify(rename = "EditLog"))]
 struct EditLogRepr {
     ops: Vec<EditOp>,
     position: usize,

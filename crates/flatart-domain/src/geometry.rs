@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// A point in image space.
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct PxPoint {
     pub x: Px,
     pub y: Px,
@@ -28,7 +29,8 @@ impl PxPoint {
 }
 
 /// A cubic Bézier in image space.
-#[derive(Debug, Clone, Copy, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct CubicBezier {
     pub from: PxPoint,
     pub ctrl1: PxPoint,

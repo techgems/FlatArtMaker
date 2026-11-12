@@ -3,9 +3,11 @@
 use crate::palette::BASE_NAME;
 use crate::settings::{Extrusion, PrintScale};
 use crate::{BorderMap, MmPoint3, OutputColourId, OutputPalette, RgbaImage, Slot};
+use serde::Serialize;
 
 /// Everything the vector exporters need: the traced art plus how to size and extrude it.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct VectorModel {
     pub borders: BorderMap,
     pub palette: OutputPalette,
@@ -20,7 +22,9 @@ pub struct Mesh {
     pub triangles: Vec<[u32; 3]>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
 pub enum PartKind {
     /// The base, from z = 0 to B. Its colour is the palette's base colour.
     Base,

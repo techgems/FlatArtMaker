@@ -13,6 +13,7 @@ macro_rules! unit {
         $(#[$meta])*
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default, Serialize, Deserialize)]
         #[serde(transparent)]
+        #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
         pub struct $name(pub f64);
 
         impl Hash for $name {

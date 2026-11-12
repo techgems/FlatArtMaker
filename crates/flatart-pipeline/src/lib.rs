@@ -13,6 +13,10 @@ pub use pipeline::Pipeline;
 
 use flatart_domain::EngineInfo;
 
+/// The longest side of the thumbnail embedded in exports, in pixels. Every
+/// wiring crate uses it, so the same project gives the same file anywhere.
+pub const THUMBNAIL_SIDE: u32 = 256;
+
 /// Describes the engine build.
 pub fn engine_info() -> EngineInfo {
     EngineInfo {

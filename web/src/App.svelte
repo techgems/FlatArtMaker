@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import {
+    DebugExport,
     EngineBadge,
     EngineStatus,
     createWorkerEngineClient,
@@ -19,6 +20,10 @@
   <h1>FlatArtMaker</h1>
   <EngineBadge />
 </header>
+
+{#if import.meta.env.DEV}
+  <DebugExport />
+{/if}
 
 <style>
   header {

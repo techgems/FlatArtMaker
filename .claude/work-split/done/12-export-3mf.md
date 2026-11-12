@@ -1,5 +1,7 @@
 # 12: 3MF exporter
 
+**Completed:** 2026-11-11 · commit c0a55ad
+
 **Depends on:** 02, 10 · **Spec:** Pipeline step 9 (3MF) · **Crate:** `flatart-3mf`
 
 ## Goal

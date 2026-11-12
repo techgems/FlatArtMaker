@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { EngineClient } from './engine-client';
 import { EngineStatus } from './engine-status.svelte';
+import { createFakeEngineClient } from './fake-engine-client';
 
 function fakeClient(version: () => Promise<string>): EngineClient {
-  return { version, dispose: () => {} };
+  return { ...createFakeEngineClient(), version };
 }
 
 describe('EngineStatus', () => {

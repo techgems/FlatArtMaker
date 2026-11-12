@@ -4,11 +4,9 @@
 use clap::{Parser, ValueEnum};
 use flatart_cli::{Job, Slicer, ThinFix, read_png};
 use flatart_domain::{EditLog, ExportOptions};
+use flatart_pipeline::THUMBNAIL_SIDE;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-
-/// The biggest side of the thumbnail inside the 3MF, in pixels.
-const THUMBNAIL_SIDE: u32 = 256;
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum SlicerArg {

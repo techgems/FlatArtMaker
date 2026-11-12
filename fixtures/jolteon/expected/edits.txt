@@ -1,5 +1,5 @@
-3mf-prusa    2023309 bytes  fnv1a 53d96e938c6e09cd
-3mf-bambu    1981177 bytes  fnv1a 2e1ae2da299f2f89
+3mf-prusa    2023309 bytes  fnv1a c751b2e13cd2fe16
+3mf-bambu    1981177 bytes  fnv1a 4a0fa0543288390e
 svg           612178 bytes  fnv1a f12128d28d5d0bb2
 base   Base           slot  1   128598 triangles     30641.466 mm³  z 0.00–4.40
 colour Cream          slot  2    38688 triangles      1794.446 mm³  z 3.40–4.40
