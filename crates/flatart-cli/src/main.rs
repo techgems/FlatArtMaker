@@ -2,7 +2,7 @@
 //! optionally, an SVG).
 
 use clap::{Parser, ValueEnum};
-use flatart_cli::{Job, Slicer, ThinFix, read_png};
+use flatart_cli::{Fitter, Job, Slicer, ThinFix, read_png};
 use flatart_domain::{EditLog, ExportOptions};
 use flatart_pipeline::THUMBNAIL_SIDE;
 use std::path::{Path, PathBuf};
@@ -14,6 +14,14 @@ enum SlicerArg {
     Prusa,
     /// Bambu Studio and Orca-based slicers.
     Bambu,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum FitterArg {
+    /// kurbo.
+    Kurbo,
+    /// visioncortex, the curve fitting behind vtracer.
+    Visioncortex,
 }
 
 /// Turns a flat-colour PNG into a colour-separated 3MF.
@@ -48,6 +56,9 @@ struct Args {
     /// The thin-feature fix's smallest width in mm, 0.25–1.2.
     #[arg(long = "min-width", default_value_t = 0.25)]
     min_width: f64,
+    /// Which library fits the curves.
+    #[arg(long, value_enum, default_value_t = FitterArg::Kurbo)]
+    fitter: FitterArg,
     /// A saved edit log (JSON) to replay.
     #[arg(long)]
     edits: Option<PathBuf>,
@@ -93,6 +104,10 @@ fn run(args: Args) -> Result<(), String> {
             ThinFix::MinWidth(args.min_width)
         },
         edits,
+        fitter: match args.fitter {
+            FitterArg::Kurbo => Fitter::Kurbo,
+            FitterArg::Visioncortex => Fitter::VisionCortex,
+        },
         ..Job::new(image)
     };
     let slicer = match args.slicer {

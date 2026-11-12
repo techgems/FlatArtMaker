@@ -1,7 +1,7 @@
 //! Catching fits that double back.
 //!
-//! kurbo sometimes returns a cubic with a tiny (or zero-length) handle whose
-//! other handle points backwards. The curve runs back behind its start in a
+//! A fitting library can return a cubic with a tiny (or zero-length) handle
+//! whose other handle points backwards (kurbo does). The curve runs back behind its start in a
 //! U-turn a hair wide and comes back, all within the tolerance, so the
 //! deviation check passes. Flattened into straight segments, the two sides
 //! of that needle can cross, which the mesh can't triangulate. The same

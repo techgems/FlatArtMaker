@@ -11,7 +11,7 @@ mod job;
 mod png_image;
 mod wiring;
 
-pub use job::{Job, Slicer, ThinFix};
+pub use job::{Fitter, Job, Slicer, ThinFix};
 pub use png_image::read_png;
 pub use wiring::pipeline;
 

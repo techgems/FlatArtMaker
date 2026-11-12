@@ -17,6 +17,7 @@ path = "src/main.rs"
 [dependencies]
 flatart-domain.workspace = true
 flatart-pipeline.workspace = true
+flatart-ports.workspace = true
 serde_json.workspace = true
 clap = { version = "4.6.7", features = ["derive"] }
 png = "0.18.1"
@@ -27,6 +28,7 @@ flatart-quant-kmeans = { path = "../flatart-quant-kmeans" }
 flatart-mapping = { path = "../flatart-mapping" }
 flatart-trace-graph = { path = "../flatart-trace-graph" }
 flatart-fit-kurbo = { path = "../flatart-fit-kurbo" }
+flatart-fit-visioncortex = { path = "../flatart-fit-visioncortex" }
 flatart-mesh = { path = "../flatart-mesh" }
 flatart-tri-itriangle = { path = "../flatart-tri-itriangle" }
 flatart-svg = { path = "../flatart-svg" }

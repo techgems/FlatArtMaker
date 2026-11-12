@@ -1,0 +1,13 @@
+[package]
+name = "flatart-fit-support"
+description = "Library-independent scaffolding for CurveFitter adapters: corner splitting, the tolerance and doubling-back checks, and the fit-or-split loop."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+flatart-domain.workspace = true
+
+[lints]
+workspace = true

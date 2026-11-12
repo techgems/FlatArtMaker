@@ -1,6 +1,6 @@
 use crate::KurboFitter;
-use crate::deviation;
 use flatart_domain::{CubicBezier, PxPoint};
+use flatart_fit_support::deviation;
 use flatart_ports::CurveFitter;
 use flatart_ports::testkit::{curve_fitter, fixtures};
 

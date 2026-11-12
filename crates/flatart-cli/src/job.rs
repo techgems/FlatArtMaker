@@ -22,6 +22,16 @@ impl Slicer {
     }
 }
 
+/// Which library fits the curves.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Fitter {
+    /// kurbo (the default).
+    #[default]
+    Kurbo,
+    /// visioncortex, the fitting behind vtracer.
+    VisionCortex,
+}
+
 /// "Fix thin features": off, or on with the smallest width in mm.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ThinFix {
@@ -42,6 +52,7 @@ pub struct Job {
     pub size_x: f64,
     pub thin_fix: ThinFix,
     pub edits: EditLog,
+    pub fitter: Fitter,
 }
 
 impl Job {
@@ -55,6 +66,7 @@ impl Job {
             size_x: 100.0,
             thin_fix: ThinFix::MinWidth(0.25),
             edits: EditLog::new(),
+            fitter: Fitter::default(),
         }
     }
 
@@ -79,7 +91,7 @@ impl Job {
                 self.size_x
             )));
         }
-        let mut pipeline = wiring::pipeline()?;
+        let mut pipeline = wiring::pipeline(self.fitter)?;
         pipeline.set_image(self.image.clone());
         pipeline.set_edits(self.edits.clone());
         pipeline.set_settings(self.settings(PrintScale::new(MmPerPx(1.0))?)?);
