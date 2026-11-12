@@ -27,8 +27,9 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [ ] 16 | [Colour-mapping editor](16-colour-mapping-editor.md) | 06, 15 | 3 | – |
 | - [ ] 17 | [3D preview](17-3d-preview.md) | 15 | 3 | – |
 | - [ ] 18 | [Saved projects](18-saved-projects.md) | 06, 15 | 3 | – |
-| - [ ] 19 | [STEP export](19-step-export.md) | 03, 08, 14 | 4 | – |
+| - [x] 19 | [STEP export](done/19-step-export.md) | 03, 08, 14 | 4 | 2026-11-12 · 8d6e5ed |
 | - [ ] 20 | [Deploy](20-deploy.md) | 15 | 5 | – |
+| - [ ] 21 | [Lighter STEP files](21-step-size.md) | 19 | 4 | – |
 
 ## Tasks that can run in parallel
 

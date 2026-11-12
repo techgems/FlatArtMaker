@@ -1,5 +1,7 @@
 # 19: STEP export
 
+**Completed:** 2026-11-12 · commit 8d6e5ed
+
 **Depends on:** 03, 08, 14 · **Spec:** STEP library policy, Pipeline step 9 (STEP)
 
 ## Goal
@@ -26,3 +28,9 @@ Implement `Exporter<VectorModel>` for STEP with `truck`, grouping bodies into on
 - **Golden test:** re-read the output with `truck-stepio` (as in `spikes/step/src/bin/step-check.rs`). Every shell is closed, the solid count is right, and the names match the expected list. Also run the spike's structural checks: no references to missing entities, and every edge used exactly once in each direction.
 - Jolteon opens in Fusion with one correctly named component per colour (plus `Base`) and no repair needed.
 - The main WASM bundle size is unchanged.
+
+## Notes (2026-11-12)
+- **Base colour:** its areas are bodies of their own in the `Base` component (`Base-1`, …), not fused into the slab: fused, the slab's top face touches itself where two of them meet at a corner, which truck rejects (21 of 52 test images). Accepted by the user; SPEC updated.
+- **Browser:** `EngineClient.exportStep` fetches the STEP module on its first call. The "Download STEP" button and its spinner are part of the header in task 15. Until then the dev-only debug export control has a STEP option.
+- **Fusion:** Jolteon opened cleanly (user, 2026-11-12).
+- **Size:** one edge and wall face per fitted curve gives files of about 30 MB. Follow-up: [task 21](../21-step-size.md).

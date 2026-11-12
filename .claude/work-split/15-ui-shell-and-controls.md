@@ -19,7 +19,7 @@ Build the single-page app: upload, controls, 2D previews and downloads.
   - **Advanced:** a collapsed section.
 - **Centre:** tabs for Original, Mapped colours and Vector (SVG). The 3D tab is a placeholder until task 17.
 - **Right:** the output-colour summary chips and an "Edit colours" button (opens task 16's modal).
-- **Header:** Download 3MF, STEP (disabled until task 19) and SVG. Next to Download 3MF is a slicer choice (PrusaSlicer, or Bambu Studio / Orca), remembered between visits.
+- **Header:** Download 3MF, STEP and SVG. STEP calls `EngineClient.exportStep`, whose first call also fetches the STEP module (task 19), so the button shows a spinner while it runs. Next to Download 3MF is a slicer choice (PrusaSlicer, or Bambu Studio / Orca), remembered between visits.
 - **Settings changes:** debounced. Only affected stages re-run.
 
 ## Acceptance
