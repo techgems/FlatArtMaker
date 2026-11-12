@@ -1,30 +1,30 @@
 <script lang="ts">
-  // TEMPORARY (task 14): dev-only 3MF export check. Remove with debug-export.svelte.ts.
+  // TEMPORARY (tasks 14, 19): dev-only export check. Remove with debug-export.svelte.ts.
   import { getEngineClient } from '../context';
-  import { DebugExport } from '../debug-export.svelte';
-  import type { Slicer } from '../types';
+  import { DebugExport, type DebugExportFormat } from '../debug-export.svelte';
 
   const debug = new DebugExport(getEngineClient());
-  let slicer = $state<Slicer>('prusa');
+  let format = $state<DebugExportFormat>('prusa');
 
   function onFileChange(event: Event & { currentTarget: HTMLInputElement }): void {
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
-    void debug.run(file, slicer);
+    void debug.run(file, format);
     // Clearing lets the same file be chosen again for a re-run.
     input.value = '';
   }
 </script>
 
 <section class="debug">
-  <h2>Debug: 3MF export (temporary, dev only)</h2>
+  <h2>Debug: export (temporary, dev only)</h2>
   <div class="controls">
     <label>
-      Slicer
-      <select bind:value={slicer} disabled={debug.phase === 'working'}>
-        <option value="prusa">prusa</option>
-        <option value="bambu">bambu</option>
+      Format
+      <select bind:value={format} disabled={debug.phase === 'working'}>
+        <option value="prusa">3MF (prusa)</option>
+        <option value="bambu">3MF (bambu)</option>
+        <option value="step">STEP</option>
       </select>
     </label>
     <label>

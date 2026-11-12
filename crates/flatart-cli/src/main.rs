@@ -38,6 +38,9 @@ struct Args {
     /// Also write the art as an SVG here.
     #[arg(long)]
     svg: Option<PathBuf>,
+    /// Also write the model as a STEP file here, for CAD.
+    #[arg(long)]
+    step: Option<PathBuf>,
     /// How many output colours (filaments) to start with, 1–16.
     #[arg(long = "output-colors", default_value_t = 8)]
     output_colours: u8,
@@ -132,6 +135,10 @@ fn run(args: Args) -> Result<(), String> {
     if let Some(svg) = &args.svg {
         write(svg, &pipeline.export("svg", &options).map_err(fail)?)?;
         written.push(svg);
+    }
+    if let Some(step) = &args.step {
+        write(step, &pipeline.export("step", &options).map_err(fail)?)?;
+        written.push(step);
     }
     let thin = pipeline.printable().map_err(fail)?.thin_features.len();
     if thin > 0 {

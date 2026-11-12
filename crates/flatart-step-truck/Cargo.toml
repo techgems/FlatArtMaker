@@ -1,0 +1,29 @@
+[package]
+name = "flatart-step-truck"
+description = "Exporter<VectorModel> for STEP (AP214): solid straight extrusions with exact Bézier edges, grouped by colour, written with truck."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# truck master, pinned (SPEC "STEP library policy"; the crates.io release has
+# no truck-assembly). Move the pin deliberately and record why.
+[dependencies]
+flatart-domain.workspace = true
+flatart-ports.workspace = true
+truck-modeling = { git = "https://github.com/ricosjp/truck", rev = "55548a27de0af3e87cceeb677b809aa110a87028" }
+truck-topology = { git = "https://github.com/ricosjp/truck", rev = "55548a27de0af3e87cceeb677b809aa110a87028" }
+truck-assembly = { git = "https://github.com/ricosjp/truck", rev = "55548a27de0af3e87cceeb677b809aa110a87028" }
+truck-stepio = { git = "https://github.com/ricosjp/truck", rev = "55548a27de0af3e87cceeb677b809aa110a87028", default-features = false }
+
+[features]
+# `check`: reads a written file back with truck's reader and checks it (for
+# tests here and in the wiring crates). `in` doesn't compile without `derive`.
+check = ["truck-stepio/in", "truck-stepio/derive"]
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+flatart-step-truck = { path = ".", features = ["check"] }
+
+[lints]
+workspace = true

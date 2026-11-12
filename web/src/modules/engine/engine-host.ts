@@ -8,6 +8,7 @@ import type {
   RgbaPixels,
   Settings,
   Slicer,
+  VectorModel,
 } from './types';
 
 /** The parts of the WASM package the host uses, once it is initialised. */
@@ -16,16 +17,26 @@ export interface EngineModule {
   engineVersion(): string;
 }
 
+/** The STEP module's export, once it is initialised. */
+export interface StepModule {
+  exportStep(model: VectorModel, name: string): Uint8Array;
+}
+
 /** The engine side of `EngineClient`: everything but `dispose`. */
 export type EngineHost = Omit<EngineClient, 'dispose'>;
 
 /**
  * Runs the WASM engine in the current thread. The worker exposes it through
- * Comlink; tests can call it directly. The module is passed in because the
- * browser and Node load the `.wasm` file differently.
+ * Comlink; tests can call it directly. The modules are passed in because the
+ * browser and Node load the `.wasm` files differently. `loadStep` is called
+ * on the first STEP export, so the STEP module loads only if it's needed.
  */
-export function createEngineHost(module: Promise<EngineModule>): EngineHost {
+export function createEngineHost(
+  module: Promise<EngineModule>,
+  loadStep: () => Promise<StepModule>,
+): EngineHost {
   let project: Engine | null = null;
+  let step: Promise<StepModule> | null = null;
 
   async function open(): Promise<Engine> {
     await module;
@@ -85,6 +96,16 @@ export function createEngineHost(module: Promise<EngineModule>): EngineHost {
 
     async exportSvg(name: string): Promise<Uint8Array> {
       return (await open()).exportSvg(name);
+    },
+
+    async exportStep(name: string): Promise<Uint8Array> {
+      const engine = await open();
+      // A failed load isn't kept, so the next export tries again.
+      step ??= loadStep().catch((cause: unknown) => {
+        step = null;
+        throw cause;
+      });
+      return (await step).exportStep(engine.vectorModel(), name);
     },
   };
 }

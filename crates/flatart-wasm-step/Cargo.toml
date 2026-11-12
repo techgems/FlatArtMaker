@@ -1,0 +1,32 @@
+[package]
+name = "flatart-wasm-step"
+description = "Browser wiring for STEP export only: a separate WASM module, loaded the first time a STEP file is asked for."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+flatart-domain = { workspace = true, features = ["tsify"] }
+flatart-ports.workspace = true
+wasm-bindgen.workspace = true
+console_error_panic_hook.workspace = true
+serde-wasm-bindgen.workspace = true
+
+# The concrete adapter. Only the wiring crates name it.
+flatart-step-truck = { path = "../flatart-step-truck" }
+
+[dev-dependencies]
+flatart-ports = { workspace = true, features = ["testkit"] }
+serde_json.workspace = true
+
+# Not `workspace = true`: wasm-bindgen generates unsafe glue, so this crate
+# relaxes `unsafe_code` from forbid to deny (SPEC.md, Coding standards).
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

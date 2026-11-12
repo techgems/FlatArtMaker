@@ -32,10 +32,12 @@ flatart-fit-visioncortex = { path = "../flatart-fit-visioncortex" }
 flatart-mesh = { path = "../flatart-mesh" }
 flatart-tri-itriangle = { path = "../flatart-tri-itriangle" }
 flatart-svg = { path = "../flatart-svg" }
+flatart-step-truck = { path = "../flatart-step-truck" }
 flatart-3mf = { path = "../flatart-3mf" }
 
 [dev-dependencies]
 flatart-ports = { workspace = true, features = ["testkit"] }
+flatart-step-truck = { path = "../flatart-step-truck", features = ["check"] }
 proptest.workspace = true
 zip = { version = "9.5.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 

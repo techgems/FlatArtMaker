@@ -6,20 +6,25 @@
 //! height. When a case differs, the actual files are written to
 //! `target/golden/` to inspect.
 //!
+//! The STEP file is also read back with truck's reader: every body must be
+//! a closed solid, with one component per part and one body per area.
+//!
 //! After a deliberate change, re-record with
 //! `UPDATE_GOLDEN=1 cargo test -p flatart-cli --test golden`.
 
 use flatart_cli::{Job, Pipeline, read_png};
 use flatart_domain::{EditLog, ExportOptions, MeshModel, PartKind};
 use flatart_ports::testkit::mesh::{assert_model_watertight, signed_volume};
+use flatart_step_truck::check;
 use std::fmt::Write;
 use std::path::PathBuf;
 
 const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/jolteon");
-const EXPORTERS: [(&str, &str); 3] = [
+const EXPORTERS: [(&str, &str); 4] = [
     ("3mf-prusa", "prusa.3mf"),
     ("3mf-bambu", "bambu.3mf"),
     ("svg", "svg"),
+    ("step", "step"),
 ];
 
 fn jolteon() -> Job {
@@ -82,6 +87,62 @@ fn summarise(pipeline: &mut Pipeline) -> (String, Vec<(String, Vec<u8>)>) {
     (summary, files)
 }
 
+/// Reads the STEP file back: one component per mesh part, in the same
+/// order and with the same names, under a root named `jolteon`. Each
+/// colour has one body per area of that colour, and the base one per piece
+/// of art plus one per area of the base colour. Bodies are named after
+/// their component, then `-1`, `-2`, …
+fn check_step(pipeline: &mut Pipeline, files: &[(String, Vec<u8>)]) {
+    let (_, bytes) = files.iter().find(|(e, _)| e == "step").unwrap();
+    let summary = check::check(std::str::from_utf8(bytes).unwrap()).unwrap();
+    assert_eq!(
+        summary.schema,
+        "AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }"
+    );
+    let model = pipeline.mesh().unwrap().clone();
+    let mut products = vec!["jolteon".to_owned()];
+    products.extend(
+        model
+            .parts
+            .iter()
+            .map(|p| model.part_name(p).unwrap().to_owned()),
+    );
+    assert_eq!(summary.products, products);
+    let faces = pipeline.border_map().unwrap().faces.clone();
+    let named = |body: &str, name: &str| {
+        body == name
+            || body
+                .strip_prefix(name)
+                .and_then(|r| r.strip_prefix('-'))
+                .is_some_and(|n| n.parse::<u32>().is_ok())
+    };
+    let mut rest = summary.bodies.as_slice();
+    for part in &model.parts {
+        let name = model.part_name(part).unwrap();
+        let count = rest.iter().take_while(|b| named(b, name)).count();
+        let expected: Vec<String> = (0..count)
+            .map(|i| match i {
+                0 => name.to_owned(),
+                _ => format!("{name}-{i}"),
+            })
+            .collect();
+        assert_eq!(rest[..count], expected, "{name}: body names");
+        rest = &rest[count..];
+        let areas = faces.iter().filter(|f| f.colour == part.colour).count();
+        match part.kind {
+            PartKind::Colour => assert_eq!(count, areas, "{name}: one body per area"),
+            PartKind::Base => assert!(
+                count > areas,
+                "{name}: the slab plus the base colour's {areas} areas, got {count}"
+            ),
+        }
+    }
+    assert!(rest.is_empty(), "bodies with no component: {rest:?}");
+    let (lo, hi) = summary.bounds;
+    assert!(lo.iter().all(|&c| c.abs() < 1e-9), "{lo:?}");
+    assert!((hi[0].max(hi[1]) - 100.0).abs() < 1e-9, "{hi:?}");
+}
+
 /// Compares `summary` with the recorded one, or records it.
 fn check(case: &str, summary: &str, files: &[(String, Vec<u8>)]) {
     let expected_path = PathBuf::from(format!("{FIXTURES}/expected/{case}.txt"));
@@ -114,6 +175,7 @@ fn jolteon_with_the_defaults() {
     assert_model_watertight(&model);
     assert_eq!(model.parts[0].kind, PartKind::Base);
     let (summary, files) = summarise(&mut pipeline);
+    check_step(&mut pipeline, &files);
     check("defaults", &summary, &files);
 }
 
@@ -167,6 +229,7 @@ fn jolteon_with_no_base() {
     );
 
     let (summary, files) = summarise(&mut pipeline);
+    check_step(&mut pipeline, &files);
     check("no-base", &summary, &files);
 }
 
@@ -194,5 +257,6 @@ fn jolteon_with_a_recorded_edit_log() {
         "painting: the tongue gets its own part: {names:?}"
     );
     let (summary, files) = summarise(&mut pipeline);
+    check_step(&mut pipeline, &files);
     check("edits", &summary, &files);
 }

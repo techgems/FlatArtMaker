@@ -29,7 +29,7 @@ impl PxPoint {
 }
 
 /// A cubic Bézier in image space.
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct CubicBezier {
     pub from: PxPoint,

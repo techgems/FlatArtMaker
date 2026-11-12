@@ -269,7 +269,7 @@ pub struct MeshSettings {
 }
 
 /// The Z heights: colour layer from B to B + C, base from 0 to B.
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct Extrusion {

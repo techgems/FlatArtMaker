@@ -3,10 +3,10 @@
 use crate::palette::BASE_NAME;
 use crate::settings::{Extrusion, PrintScale};
 use crate::{BorderMap, MmPoint3, OutputColourId, OutputPalette, RgbaImage, Slot};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Everything the vector exporters need: the traced art plus how to size and extrude it.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 pub struct VectorModel {
     pub borders: BorderMap,

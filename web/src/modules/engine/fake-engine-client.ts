@@ -224,6 +224,14 @@ export function createFakeEngineClient(): EngineClient {
         return new TextEncoder().encode(`<svg><title>${name}</title></svg>`);
       }),
 
+    exportStep: (name) =>
+      attempt(() => {
+        open();
+        return new TextEncoder().encode(
+          `ISO-10303-21;\nDATA;\n#1 = PRODUCT('${name}', '${name}', '', ());\nENDSEC;\nEND-ISO-10303-21;\n`,
+        );
+      }),
+
     dispose: () => {
       project = null;
     },

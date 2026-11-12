@@ -2,7 +2,7 @@
 
 use crate::settings::TraceUpscale;
 use crate::{Error, OutputColourId, Result, Rgba};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Checks `width × height == len` and that neither side is zero.
 fn check_grid(what: &'static str, width: u32, height: u32, len: usize) -> Result<()> {
@@ -60,7 +60,7 @@ impl RgbaImage {
 ///
 /// In a detected label map, label `n` is entry `n` of the `DetectedPalette`.
 /// In an output label map, the label is the `OutputColourId`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[serde(transparent)]
 pub struct Label(pub u16);

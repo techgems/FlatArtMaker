@@ -50,6 +50,7 @@ export function engineClientContract(
       await expect(client.mesh()).rejects.toThrow();
       await expect(client.export3mf('prusa', 'x')).rejects.toThrow();
       await expect(client.exportSvg('x')).rejects.toThrow();
+      await expect(client.exportStep('x')).rejects.toThrow();
     });
 
     it('loads an image: its art bounds, and defaults sized to 100 mm', async () => {
@@ -123,6 +124,13 @@ export function engineClientContract(
       expect([...threeMf.slice(0, 4)]).toEqual([0x50, 0x4b, 3, 4]);
       const svg = new TextDecoder().decode(await client.exportSvg('tiny'));
       expect(svg).toContain('<title>tiny</title>');
+    });
+
+    it('exports a STEP file with the root part named', async () => {
+      await client.loadImage(sampleImage());
+      const step = new TextDecoder().decode(await client.exportStep('tiny'));
+      expect(step.startsWith('ISO-10303-21;')).toBe(true);
+      expect(step).toContain("PRODUCT('tiny'");
     });
   });
 }

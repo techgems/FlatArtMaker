@@ -17,6 +17,7 @@ export function createWorkerEngineClient(): EngineClient {
     mesh: () => remote.mesh(),
     export3mf: (slicer, name) => remote.export3mf(slicer, name),
     exportSvg: (name) => remote.exportSvg(name),
+    exportStep: (name) => remote.exportStep(name),
     dispose: () => {
       remote[Comlink.releaseProxy]();
       worker.terminate();

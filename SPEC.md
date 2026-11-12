@@ -229,21 +229,23 @@ Each stage caches its result, so a slider change only re-runs the stages after i
        - **`bambu`** (Bambu Studio and Orca-based slicers): one mesh object per part under a parent object, plus `Metadata/model_settings.config` with each part's name and extruder.
      - Both dialects put output colour slot *n* on extruder *n*. Empty colours take no slot, so the extruders have no gaps.
    - **STEP (AP214):** built from the shared-border map, with no straight-segment approximation.
-     - **Bodies:** one solid per island, plus the base as a solid of its own when B > 0. Units are mm.
+     - **Bodies:** one solid per island, plus the base as a solid of its own when B > 0 (one per separate piece of art). Units are mm.
      - **Names matter; colour doesn't.** Bodies are grouped and named by output colour, so anyone editing the file can recolour a whole colour at once in their own CAD tool:
        - **Structure (grouped bodies):** one root part, holding one named component per output colour (`Black`, `White`, …), plus a `Base` component when B > 0.
          - Each colour component holds all of that colour's bodies as solids in a single shape. It has no sub-component per body, because that adds too much clutter when editing.
          - In STEP terms: a root `PRODUCT`, one child `PRODUCT` per colour, and one `SHAPE_REPRESENTATION` per colour holding its `MANIFOLD_SOLID_BREP`s.
        - **Body names:** the first body of a colour is `Black`, then `Black-1`, `Black-2`, … These names are written on the solids, but CAD tools may show generic names instead (Fusion ignored solid names in testing). The colour component's name is the one that matters.
        - **Numbering order:** by area, largest first, with ties broken top-to-bottom then left-to-right. The order is deterministic, so re-exporting gives the same names.
-       - **The base** (when B > 0) is named `Base`. Base-colour faces merged into it don't get their own bodies.
+       - **The base** (when B > 0) is the `Base` component. It holds the base slab (from 0 to B) and, as bodies of their own, the base colour's islands (from B to B + C). They are numbered together: `Base`, `Base-1`, … Recolouring the `Base` component recolours both.
      - **Colour styling** (`STYLED_ITEM` / `COLOUR_RGB`) is not required. It can be added later as a nice-to-have.
      - **Faces:** flat top and bottom faces bounded by the original curves, converted to B-splines. The side walls are straight extrusions of those curves.
      - **Geometry limits (permanent):**
        - Every body is a **solid** (`MANIFOLD_SOLID_BREP`). The file never contains loose surfaces or mesh bodies.
        - Every body is a **straight extrusion** of a flat outline: flat top and bottom, and vertical side walls.
        - No chamfers, fillets, drafts or sloped faces, in STEP or in the 3MF.
-     - **Base-colour faces:** merged into the base when B > 0, as in the 3MF.
+     - **Base-colour faces** (when B > 0): in the `Base` component, but **not fused** into the slab, unlike the 3MF, where they're part of the base mesh.
+       - **Why:** fused, the slab's top face would touch itself wherever two base-colour islands meet only at a corner. A face boundary can't do that, and `truck` rejects it (it failed on 21 of 52 test images). Separate bodies also keep every body a straight extrusion.
+       - Accepted by the user, 2026-11-12.
    - **SVG:** one `<path>` per face, built from the same Béziers.
 
 ## UI (single page)

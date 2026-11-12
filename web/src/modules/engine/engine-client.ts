@@ -33,5 +33,11 @@ export interface EngineClient {
   /** The 3MF, byte for byte what the CLI writes for the same input. */
   export3mf(slicer: Slicer, name: string): Promise<Uint8Array>;
   exportSvg(name: string): Promise<Uint8Array>;
+  /**
+   * The STEP file, root part named `name`. The first call also loads the
+   * STEP module, which the main engine leaves out to stay small, so it can
+   * take a moment longer: show progress while it runs.
+   */
+  exportStep(name: string): Promise<Uint8Array>;
   dispose(): void;
 }
