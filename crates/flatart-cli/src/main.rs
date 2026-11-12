@@ -51,6 +51,9 @@ struct Args {
     /// A saved edit log (JSON) to replay.
     #[arg(long)]
     edits: Option<PathBuf>,
+    /// Don't print where the files were written. Warnings and errors still print.
+    #[arg(short, long)]
+    quiet: bool,
 }
 
 fn read(path: &Path) -> Result<Vec<u8>, String> {
@@ -59,6 +62,17 @@ fn read(path: &Path) -> Result<Vec<u8>, String> {
 
 fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     std::fs::write(path, bytes).map_err(|e| format!("can't write {}: {e}", path.display()))
+}
+
+/// Tells the user where each written file is, as a full path.
+fn report_written(paths: &[&Path]) {
+    println!("Files generated successfully:");
+    for path in paths {
+        // `absolute` doesn't touch the file system, so it can't fail on a file we just wrote
+        // unless the working directory is gone; fall back to the path as given.
+        let shown = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+        println!("  {}", shown.display());
+    }
 }
 
 fn run(args: Args) -> Result<(), String> {
@@ -99,8 +113,10 @@ fn run(args: Args) -> Result<(), String> {
         &args.output,
         &pipeline.export(slicer.exporter(), &options).map_err(fail)?,
     )?;
+    let mut written = vec![args.output.as_path()];
     if let Some(svg) = &args.svg {
         write(svg, &pipeline.export("svg", &options).map_err(fail)?)?;
+        written.push(svg);
     }
     let thin = pipeline.printable().map_err(fail)?.thin_features.len();
     if thin > 0 {
@@ -108,6 +124,9 @@ fn run(args: Args) -> Result<(), String> {
     }
     for dropped in &pipeline.mapped().map_err(fail)?.dropped_edits {
         eprintln!("warning: an edit was dropped: {dropped:?}");
+    }
+    if !args.quiet {
+        report_written(&written);
     }
     Ok(())
 }
