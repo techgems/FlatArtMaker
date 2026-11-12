@@ -1,5 +1,7 @@
 # 14: WASM engine API
 
+**Completed:** 2026-11-11 · commit 4cf4b19
+
 **Depends on:** 13 · **Spec:** Stack, Front end (`web/`)
 
 ## Goal
