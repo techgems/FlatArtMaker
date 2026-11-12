@@ -2,6 +2,7 @@
 //! truck's writer needs.
 
 use crate::brep::Body;
+use crate::compact::compact;
 use flatart_domain::{Error, Result, Stage};
 use truck_assembly::assy::{Assembly, EdgeEntity, NodeEntity};
 use truck_modeling::Matrix4;
@@ -99,7 +100,7 @@ pub fn write(root: &str, components: &[Component]) -> Result<String> {
         .iter()
         .flat_map(|c| body_names(&c.name, c.bodies.len()))
         .collect();
-    patch_schema(&patch_body_names(&text, &names)?)
+    Ok(compact(&patch_schema(&patch_body_names(&text, &names)?)?))
 }
 
 /// Fills in the bodies' names, which truck writes empty, in file order

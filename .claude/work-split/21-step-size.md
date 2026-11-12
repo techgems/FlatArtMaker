@@ -36,3 +36,16 @@ Approaches 2 and 3 can be done as a post-processing pass on truck's text, or by 
 - Output stays deterministic; the golden tests pass after re-recording.
 - Jolteon opens in Fusion with no repair, with the same components and bodies (user check).
 - The main WASM bundle is unchanged, and the STEP module doesn't grow by more than about 10%.
+
+## Results (2026-11-12)
+- **Done:** approaches 1 and 2.
+  - **Joined edges** (`chain.rs`): a run of smoothly joined curves and lines becomes one cubic B-spline, exactly. The spans follow the handles at each join, so the spline is C1 there (each interior knot twice) and its parameter never stops. Knots are in mm along the run (truck treats knots closer than about 1e-6 as one). Runs break, leaving a vertex, at corners, at border ends, where a handle at the join has no length, and where a span would drift more than 10× from its curve's length. Runs of lines only stay lines, so flat walls stay planes.
+  - **Shared points** (`compact.rs`): each distinct `CARTESIAN_POINT` and `DIRECTION` is written once and referenced from every user. Vertices and edges are never merged.
+- **Fusion check, first try (failed):** the first version kept zero-length-handle joins and drifting joins inside an edge, as a tripled knot. Fusion opened Jolteon, but bodies in Cream (Body2, Body5) showed broken faces. Every edge still matched its curves (worst 1e-13 mm), so the cause was the edges' smoothness, not their shape: a tripled knot is only C0, and a zero-length handle is a point where the parameter stops, which leaves the wall above it with no defined normal along a line. Both now break the run instead.
+- **Not done:** approach 3 (compact numbers and whitespace) isn't needed to reach the target, and it rounds geometry.
+- **Jolteon:** 34.0 MB → 5.83 MB (−83%). Edges 43,494 → 3,990; entities 531,149 → 57,645.
+- **All test images, 3 settings each** (default, no base, visioncortex): 153 runs (51 images), average 5.62 MB, largest 9.0 MB. All export (about 1.1 s each) and read back as closed, correctly named solids.
+- **Shape:** a randomized test builds 500 fitter-like runs (lines and curves, handles from 1e-4 of the curve up, zero-length handles). It checks that every piece retraces its curves to within 1e-6 mm, and that no spline has a tripled knot or a repeated control point inside it.
+- **Goldens:** recorded with the documented (debug) command. One fitted point differs by one ulp between debug and release builds, upstream of the STEP code, so the edits case's STEP hash depends on the build profile.
+- **WASM:** the main module is unchanged; the STEP module is 269.9 kB → 291.3 kB (+7.9%).
+- **Fusion check, second try (2026-11-12):** the regenerated Jolteon file opens much better; the user judged it clean enough to close the task.

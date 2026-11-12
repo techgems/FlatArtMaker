@@ -1,15 +1,16 @@
 //! Closed solids from a slab, with truck: one straight extrusion per area.
 //!
-//! An area's loops give its flat bottom and top. Each curve along them
-//! gives one vertical wall, and walls meet at vertical lines through the
-//! curves' ends. Every edge is one exact Bézier (or line) or one of those
-//! vertical lines. Each loop gets its own vertices, so areas that touch at
+//! An area's loops give its flat bottom and top. Each piece along them (a
+//! line, or a run of tangent curves as one B-spline; see `chain`) gives one
+//! vertical wall, and walls meet at vertical lines through the pieces'
+//! ends. Every edge is exact. Each loop gets its own vertices, so areas that touch at
 //! a point, or an area that touches itself, still give closed manifold
 //! solids.
 
-use crate::loops::{Area, Step, areas, oriented};
+use crate::chain::{Piece, pieces};
+use crate::loops::{Area, Step, areas};
 use crate::parts::Slab;
-use crate::place::{Cubic, P2, Placed};
+use crate::place::{P2, Placed};
 use flatart_domain::{Error, Result, Stage};
 use truck_modeling::{
     BSplineCurve, BSplineSurface, Curve, Edge, Face, KnotVec, Line, Plane, Point3, Shell, Solid,
@@ -37,35 +38,29 @@ fn p3(p: P2, z: f64) -> Point3 {
     Point3::new(p.0, p.1, z)
 }
 
-/// Whether the curve is a straight line from its start to its end.
-fn straight(c: &Cubic) -> bool {
-    let d = (c[3].0 - c[0].0, c[3].1 - c[0].1);
-    let len2 = d.0 * d.0 + d.1 * d.1;
-    let off = |p: P2| ((p.0 - c[0].0) * d.1 - (p.1 - c[0].1) * d.0).abs();
-    len2 > 0.0 && off(c[1]) <= 1e-12 * len2 && off(c[2]) <= 1e-12 * len2
+fn knots(knots: &[f64]) -> KnotVec {
+    KnotVec::from(knots.to_vec())
 }
 
-fn curve(c: &Cubic, z: f64) -> Curve {
-    if straight(c) {
-        Curve::Line(Line(p3(c[0], z), p3(c[3], z)))
-    } else {
-        Curve::BSplineCurve(BSplineCurve::new(
-            KnotVec::bezier_knot(3),
-            c.iter().map(|&p| p3(p, z)).collect(),
-        ))
+fn curve(piece: &Piece, z: f64) -> Curve {
+    match piece {
+        Piece::Line(a, b) => Curve::Line(Line(p3(*a, z), p3(*b, z))),
+        Piece::Spline { knots: k, points } => Curve::BSplineCurve(BSplineCurve::new(
+            knots(k),
+            points.iter().map(|&p| p3(p, z)).collect(),
+        )),
     }
 }
 
-/// The vertical wall under `c` from `lo` to `hi`, facing the curve's right
-/// (the material is on its left).
-fn wall(c: &Cubic, lo: f64, hi: f64) -> Surface {
-    if straight(c) {
-        Surface::Plane(Plane::new(p3(c[0], lo), p3(c[3], lo), p3(c[0], hi)))
-    } else {
-        Surface::BSplineSurface(BSplineSurface::new(
-            (KnotVec::bezier_knot(3), KnotVec::bezier_knot(1)),
-            c.iter().map(|&p| vec![p3(p, lo), p3(p, hi)]).collect(),
-        ))
+/// The vertical wall under `piece` from `lo` to `hi`, facing the piece's
+/// right (the material is on its left).
+fn wall(piece: &Piece, lo: f64, hi: f64) -> Surface {
+    match piece {
+        Piece::Line(a, b) => Surface::Plane(Plane::new(p3(*a, lo), p3(*b, lo), p3(*a, hi))),
+        Piece::Spline { knots: k, points } => Surface::BSplineSurface(BSplineSurface::new(
+            (knots(k), KnotVec::bezier_knot(1)),
+            points.iter().map(|&p| vec![p3(p, lo), p3(p, hi)]).collect(),
+        )),
     }
 }
 
@@ -80,20 +75,26 @@ struct Ring {
     walls: Vec<Face>,
 }
 
-/// Builds one loop: its curves at `lo` and `hi`, and a wall under each.
+/// Builds one loop: its pieces at `lo` and `hi`, and a wall under each.
 fn ring(placed: &Placed, lp: &[Step], lo: f64, hi: f64) -> Result<Ring> {
-    let curves: Vec<Cubic> = lp.iter().flat_map(|&s| oriented(placed, s)).collect();
-    let n = curves.len();
-    let lower: Vec<Vertex> = curves.iter().map(|c| Vertex::new(p3(c[0], lo))).collect();
-    let upper: Vec<Vertex> = curves.iter().map(|c| Vertex::new(p3(c[0], hi))).collect();
+    let pieces = pieces(placed, lp);
+    let n = pieces.len();
+    let lower: Vec<Vertex> = pieces
+        .iter()
+        .map(|c| Vertex::new(p3(c.start(), lo)))
+        .collect();
+    let upper: Vec<Vertex> = pieces
+        .iter()
+        .map(|c| Vertex::new(p3(c.start(), hi)))
+        .collect();
     let uprights: Vec<Edge> = (0..n)
         .map(|i| {
-            let line = Line(p3(curves[i][0], lo), p3(curves[i][0], hi));
+            let line = Line(p3(pieces[i].start(), lo), p3(pieces[i].start(), hi));
             edge(&lower[i], &upper[i], Curve::Line(line))
         })
         .collect::<Result<_>>()?;
     let (mut bottom, mut top, mut walls) = (Wire::new(), Wire::new(), Vec::with_capacity(n));
-    for (i, c) in curves.iter().enumerate() {
+    for (i, c) in pieces.iter().enumerate() {
         let j = (i + 1) % n;
         let below = edge(&lower[i], &lower[j], curve(c, lo))?;
         let above = edge(&upper[i], &upper[j], curve(c, hi))?;
