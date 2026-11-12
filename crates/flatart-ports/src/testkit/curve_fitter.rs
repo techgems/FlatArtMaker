@@ -1,6 +1,6 @@
 //! Conformance suite for [`CurveFitter`].
 
-use super::geometry::{P, dist_to_polyline, px, sample};
+use super::geometry::{P, dist_to_polyline, dot, end_direction, px, sample, start_direction, turn};
 use super::{fixtures, ok};
 use crate::CurveFitter;
 use flatart_domain::settings::FitSettings;
@@ -96,6 +96,64 @@ fn check(fitter: &dyn CurveFitter, case: &str, points: &[PxPoint], settings: &Fi
         );
     }
 
+    check_no_doubling_back(case, &curves, points, settings);
+
     let again: Vec<CubicBezier> = ok(fitter.fit(points, settings), case);
     assert_eq!(curves, again, "{case}: not deterministic");
+}
+
+/// Checks the contract's "no doubling back": `curves`, fitted to `points`,
+/// leave and reach the polyline's ends along it, and only turn back where
+/// two curves meet at a corner or where the polyline itself turns back
+/// (more than 90°). Adapters can run it on their own cases.
+pub fn check_no_doubling_back(
+    case: &str,
+    curves: &[CubicBezier],
+    points: &[PxPoint],
+    settings: &FitSettings,
+) {
+    let corner = settings.corner.get().0;
+    let input: Vec<P> = points.iter().map(|&q| px(q)).collect();
+    let n = input.len();
+    for (i, c) in curves.iter().enumerate() {
+        let (a, b) = (px(c.from), px(c.to));
+        let chord = (b.0 - a.0, b.1 - a.1);
+        let length2 = dot(chord, chord);
+        let slack = 1e-9 * length2;
+        for k in 0..=1024 {
+            let q = px(c.point_at(f64::from(k) / 1024.0));
+            let along = dot((q.0 - a.0, q.1 - a.1), chord);
+            assert!(
+                along >= -slack && along <= length2 + slack,
+                "{case}: curve {i} runs back behind its start or past its end at {q:?}"
+            );
+        }
+    }
+    let along = |a: P, b: P| (b.0 - a.0, b.1 - a.1);
+    assert!(
+        dot(start_direction(&curves[0]), along(input[0], input[1])) > 0.0,
+        "{case}: the first curve sets off against the polyline"
+    );
+    assert!(
+        dot(
+            end_direction(&curves[curves.len() - 1]),
+            along(input[n - 2], input[n - 1])
+        ) > 0.0,
+        "{case}: the last curve arrives against the polyline"
+    );
+    for (i, pair) in curves.windows(2).enumerate() {
+        if dot(end_direction(&pair[0]), start_direction(&pair[1])) > 0.0 {
+            continue;
+        }
+        let at = px(pair[0].to);
+        // A corner, or a point where the polyline itself turns back.
+        let allowed = corner.min(90.0);
+        let at_corner =
+            (1..n - 1).any(|k| input[k] == at && turn(input[k - 1], at, input[k + 1]) > allowed);
+        assert!(
+            at_corner,
+            "{case}: curve {} turns back over curve {i} at {at:?}, where the polyline doesn't",
+            i + 1
+        );
+    }
 }

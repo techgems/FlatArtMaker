@@ -14,6 +14,15 @@ use flatart_domain::{CubicBezier, PxPoint, Result};
 ///   turning point is exactly the end of one curve and the start of the next.
 /// - **Straight stays straight:** collinear input gives curves whose control
 ///   points lie on that line.
+/// - **No doubling back:** no curve runs back behind its start or past its
+///   end, measured along the line between them. The first curve sets off,
+///   and the last arrives, the way the polyline runs at that end, and where
+///   two curves meet the
+///   second carries on rather than turning back over the first, except at a
+///   corner or where the polyline itself turns back (more than 90°). (A curve that turns back within the tolerance is a needle a
+///   hair wide; flattened, its two sides can cross.) A curve's direction at
+///   an end is along its handle there, or past it to the next control point
+///   when the handle has no length.
 /// - **Deterministic.**
 pub trait CurveFitter {
     fn fit(&self, points: &[PxPoint], settings: &FitSettings) -> Result<Vec<CubicBezier>>;

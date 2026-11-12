@@ -1,6 +1,6 @@
 //! Ties corner splitting, kurbo fitting and the tolerance check together.
 
-use crate::{corners, deviation, kurbo_fit};
+use crate::{corners, deviation, hooks, kurbo_fit};
 use flatart_domain::settings::FitSettings;
 use flatart_domain::{CubicBezier, Error, PxPoint, Result};
 use flatart_ports::CurveFitter;
@@ -64,7 +64,7 @@ fn fit_run(run: &[PxPoint], tolerance: f64, smooth_loop: bool, out: &mut Vec<Cub
     }
     for step in ACCURACY_STEPS {
         let curves = kurbo_fit::fit(run, tolerance * step, smooth_loop);
-        if deviation::within(&curves, run, tolerance) {
+        if deviation::within(&curves, run, tolerance) && hooks::none(&curves, run) {
             out.extend(curves);
             return;
         }

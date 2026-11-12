@@ -2,6 +2,7 @@
 
 use crate::quantise::{Grid, index_of};
 use crate::rings::{Ring, oriented};
+use crate::simple;
 use flatart_domain::{Error, MmPoint, PolygonWithHoles, Result, Stage};
 use flatart_ports::Triangulator;
 use i_triangle::i_overlay::i_float::int::point::IntPoint;
@@ -49,6 +50,10 @@ impl Triangulator for ITriangulator {
             .iter()
             .map(|r| r.points.iter().map(|&p| grid.point(p)).collect())
             .collect();
+        // The unchecked triangulation is undefined behaviour on rings that
+        // cross, so they're checked first.
+        simple::check(&shape)
+            .map_err(|why| Error::InvalidInput(format!("the polygon isn't simple: {why}")))?;
         let raw = shape.uncheck_triangulate();
         let index = index_of(&grid, &rings);
         // A point where rings touch maps to its first index; both are the

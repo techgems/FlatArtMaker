@@ -39,6 +39,41 @@ pub fn dist_to_polyline(p: P, line: &[P]) -> f64 {
     }
 }
 
+fn first_long(vectors: [P; 3]) -> P {
+    vectors
+        .into_iter()
+        .find(|v| v.0.hypot(v.1) > 1e-12)
+        .unwrap_or((0.0, 0.0))
+}
+
+fn sub(a: PxPoint, b: PxPoint) -> P {
+    (a.x.0 - b.x.0, a.y.0 - b.y.0)
+}
+
+/// The way `c` sets off: along its first handle, or past it if it has no length.
+pub fn start_direction(c: &CubicBezier) -> P {
+    first_long([
+        sub(c.ctrl1, c.from),
+        sub(c.ctrl2, c.from),
+        sub(c.to, c.from),
+    ])
+}
+
+/// The way `c` arrives: along its last handle, or past it if it has no length.
+pub fn end_direction(c: &CubicBezier) -> P {
+    first_long([sub(c.to, c.ctrl2), sub(c.to, c.ctrl1), sub(c.to, c.from)])
+}
+
+pub fn dot(a: P, b: P) -> f64 {
+    a.0 * b.0 + a.1 * b.1
+}
+
+/// How far the polyline `a`→`b`→`c` turns at `b`, in degrees.
+pub fn turn(a: P, b: P, c: P) -> f64 {
+    let (u, v) = ((b.0 - a.0, b.1 - a.1), (c.0 - b.0, c.1 - b.1));
+    (u.0 * v.1 - u.1 * v.0).abs().atan2(dot(u, v)).to_degrees()
+}
+
 /// `per_curve` + 1 points along each curve, joined into one polyline.
 pub fn sample(curves: &[CubicBezier], per_curve: usize) -> Vec<P> {
     let mut points = Vec::new();

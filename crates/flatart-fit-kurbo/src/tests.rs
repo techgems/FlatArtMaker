@@ -177,6 +177,7 @@ fn random_polylines_stay_within_tolerance_and_joined() {
             deviation::within(&curves, &points, tolerance + 1e-9),
             "case {case}: out of tolerance"
         );
+        curve_fitter::check_no_doubling_back(&format!("case {case}"), &curves, &points, &settings);
     }
 }
 
@@ -255,6 +256,7 @@ fn random_staircases_finish_within_tolerance() {
             deviation::within(&curves, &points, 0.5 + 1e-9),
             "case {case}"
         );
+        curve_fitter::check_no_doubling_back(&format!("case {case}"), &curves, &points, &settings);
     }
 }
 

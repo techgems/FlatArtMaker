@@ -4,12 +4,14 @@
 //! - `rings`: puts each ring the way round i_triangle needs (outer
 //!   anticlockwise, holes clockwise) and remembers the input indices.
 //! - `quantise`: maps mm to i_triangle's integer grid and back to indices.
+//! - `simple`: checks the rings don't cross before i_triangle sees them.
 //! - `triangulator`: runs it and maps the triangles back onto the input.
 //!
 //! `i_triangle` is a private detail of this crate.
 
 mod quantise;
 mod rings;
+mod simple;
 mod triangulator;
 
 pub use triangulator::ITriangulator;
