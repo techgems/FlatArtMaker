@@ -29,7 +29,7 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [ ] 18 | [Saved projects](18-saved-projects.md) | 06, 15 | 3 | – |
 | - [x] 19 | [STEP export](done/19-step-export.md) | 03, 08, 14 | 4 | 2026-11-12 · 8d6e5ed |
 | - [ ] 20 | [Deploy](20-deploy.md) | 15 | 5 | – |
-| - [ ] 21 | [Lighter STEP files](21-step-size.md) | 19 | 4 | – |
+| - [x] 21 | [Lighter STEP files](done/21-step-size.md) | 19 | 4 | 2026-11-12 · 5336d64 |
 
 ## Tasks that can run in parallel
 

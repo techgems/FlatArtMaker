@@ -1,5 +1,7 @@
 # 21: Lighter STEP files
 
+**Completed:** 2026-11-12 · commit 5336d64
+
 **Depends on:** 19 · **Spec:** Pipeline step 9 (STEP)
 
 ## Goal
