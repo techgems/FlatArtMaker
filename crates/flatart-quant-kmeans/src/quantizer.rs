@@ -7,7 +7,7 @@ use flatart_domain::settings::{QuantSettings, TraceUpscale};
 use flatart_domain::{
     DetectedColour, DetectedPalette, Detection, Label, LabelMap, Oklab, Result, RgbaImage,
 };
-use flatart_ports::ColorQuantizer;
+use flatart_ports::{ColorQuantizer, NEAR_BLACK_MAX};
 use std::cmp::Reverse;
 use std::collections::HashMap;
 
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 ///
 /// - When the image has no more distinct colours than the limit, each one
 ///   becomes its own detected colour and k-means doesn't run.
+/// - Near-black colours are read as pure black, a fixed centre like a pin.
 /// - Pins count toward the limit; k-means fills the remaining slots.
 /// - The palette is sorted by pixel count, largest first. Centres no pixel
 ///   chose are dropped, except pins.
@@ -28,11 +29,17 @@ impl ColorQuantizer for KmeansQuantizer {
         settings: &QuantSettings,
         pins: &[Oklab],
     ) -> Result<Detection> {
-        let colours = histogram(image);
+        let mut colours = histogram(image);
+        let has_black = snap_near_black(&mut colours);
         let pins = unique(pins);
-        let fixed: Vec<Lab> = pins.iter().map(|&p| Lab::from_domain(p)).collect();
+        let mut fixed: Vec<Lab> = pins.iter().map(|&p| Lab::from_domain(p)).collect();
+        if has_black && !fixed.contains(&Lab::BLACK) {
+            fixed.push(Lab::BLACK);
+        }
         let limit = usize::from(settings.max_colours.get());
-        let centres = if colours.len() <= limit {
+        let distinct =
+            colours.iter().filter(|c| c.lab != Lab::BLACK).count() + usize::from(has_black);
+        let centres = if distinct <= limit {
             let own = colours.iter().map(|c| c.lab).filter(|l| !fixed.contains(l));
             fixed.iter().copied().chain(own).collect()
         } else {
@@ -40,6 +47,19 @@ impl ColorQuantizer for KmeansQuantizer {
         };
         build(image, &colours, &pins, &centres)
     }
+}
+
+/// Reads every near-black colour as pure black. Returns whether there were any.
+fn snap_near_black(colours: &mut [ColourCount]) -> bool {
+    let mut any = false;
+    for c in colours
+        .iter_mut()
+        .filter(|c| c.rgb.iter().all(|&v| v <= NEAR_BLACK_MAX))
+    {
+        c.lab = Lab::BLACK;
+        any = true;
+    }
+    any
 }
 
 /// `pins` without repeats, in their original order.

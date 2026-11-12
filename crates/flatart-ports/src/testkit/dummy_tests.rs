@@ -7,7 +7,8 @@ use super::{
     triangulator,
 };
 use crate::{
-    BorderTracer, ColorQuantizer, CurveFitter, Exporter, MODEL_PATH, SlicerDialect, Triangulator,
+    BorderTracer, ColorQuantizer, CurveFitter, Exporter, MODEL_PATH, NEAR_BLACK_MAX, SlicerDialect,
+    Triangulator,
 };
 use flatart_domain::settings::{FitSettings, QuantSettings};
 use flatart_domain::{
@@ -47,11 +48,17 @@ impl ColorQuantizer for ExactQuantizer {
                 labels.push(Label::OUTSIDE);
                 continue;
             }
-            let lab = Oklab::new(
-                f64::from(p.r) / 255.0,
-                f64::from(p.g) / 255.0,
-                f64::from(p.b) / 255.0,
-            )?;
+            // Not real OKLab: each distinct RGB just needs a distinct value,
+            // and near black reads as (0, 0, 0).
+            let near_black = [p.r, p.g, p.b].iter().all(|&v| v <= NEAR_BLACK_MAX);
+            let lab = match near_black {
+                true => Oklab::new(0.0, 0.0, 0.0)?,
+                false => Oklab::new(
+                    f64::from(p.r) / 255.0,
+                    f64::from(p.g) / 255.0,
+                    f64::from(p.b) / 255.0,
+                )?,
+            };
             let index = match colours.iter().position(|c| c.colour == lab) {
                 Some(i) => i,
                 None => {

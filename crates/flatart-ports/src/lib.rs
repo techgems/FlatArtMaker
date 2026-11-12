@@ -23,7 +23,7 @@ mod triangulator;
 pub mod testkit;
 
 pub use border_tracer::BorderTracer;
-pub use color_quantizer::ColorQuantizer;
+pub use color_quantizer::{ColorQuantizer, NEAR_BLACK_MAX};
 pub use colour_mapper::ColourMapper;
 pub use curve_fitter::CurveFitter;
 pub use exporter::Exporter;

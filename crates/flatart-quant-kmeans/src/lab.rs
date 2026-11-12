@@ -8,6 +8,9 @@ use palette::{IntoColor, Srgb};
 pub(crate) struct Lab(pub [f64; 3]);
 
 impl Lab {
+    /// Pure black, exactly.
+    pub(crate) const BLACK: Lab = Lab([0.0; 3]);
+
     pub(crate) fn from_srgb(rgb: [u8; 3]) -> Self {
         let linear = Srgb::new(rgb[0], rgb[1], rgb[2])
             .into_format::<f64>()

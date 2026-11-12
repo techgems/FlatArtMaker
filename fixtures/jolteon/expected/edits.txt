@@ -1,9 +1,9 @@
-3mf-prusa    2023309 bytes  fnv1a c751b2e13cd2fe16
-3mf-bambu    1981177 bytes  fnv1a 4a0fa0543288390e
-svg           612178 bytes  fnv1a f12128d28d5d0bb2
-base   Base           slot  1   128598 triangles     30641.466 mm³  z 0.00–4.40
-colour Cream          slot  2    38688 triangles      1794.446 mm³  z 3.40–4.40
-colour OrangeYellow   slot  3    26396 triangles      1376.547 mm³  z 3.40–4.40
-colour Orange         slot  4      280 triangles         0.385 mm³  z 3.40–4.40
-colour Orange2        slot  5    15048 triangles       564.921 mm³  z 3.40–4.40
-colour Pink           slot  6      260 triangles         6.356 mm³  z 3.40–4.40
+3mf-prusa    2192209 bytes  fnv1a 9260f9b593d83099
+3mf-bambu    2143359 bytes  fnv1a 531295fbbe716707
+svg           677122 bytes  fnv1a 8a838ca6cf5bf745
+base   Base           slot  1   137484 triangles     30648.376 mm³  z 0.00–4.40
+colour Cream          slot  2    37900 triangles      1774.171 mm³  z 3.40–4.40
+colour OrangeYellow   slot  3    27416 triangles      1384.706 mm³  z 3.40–4.40
+colour Orange         slot  4     2628 triangles         6.209 mm³  z 3.40–4.40
+colour Orange2        slot  5    19872 triangles       564.195 mm³  z 3.40–4.40
+colour Pink           slot  6      240 triangles         6.464 mm³  z 3.40–4.40

@@ -1,9 +1,9 @@
 //! Conformance suite for [`ColorQuantizer`].
 
 use super::{fixtures, ok};
-use crate::ColorQuantizer;
+use crate::{ColorQuantizer, NEAR_BLACK_MAX};
 use flatart_domain::settings::{DetectedColourLimit, QuantSettings};
-use flatart_domain::{Detection, Label, Oklab, RgbaImage};
+use flatart_domain::{Detection, Label, Oklab, Rgba, RgbaImage};
 use std::collections::HashMap;
 
 /// Runs every check on `quantizer`.
@@ -30,6 +30,60 @@ pub fn run(quantizer: &dyn ColorQuantizer) {
     assert!(
         detection.palette.colours().iter().any(|c| c.colour == pin),
         "pinned: the pin must appear in the palette with exactly its value"
+    );
+
+    near_black(quantizer, &settings);
+}
+
+/// Shades up to `NEAR_BLACK_MAX` in every channel all read as exact black;
+/// one step brighter is a colour of its own.
+fn near_black(quantizer: &dyn ColorQuantizer, settings: &QuantSettings) {
+    let m = NEAR_BLACK_MAX;
+    let grey = |v: u8| Rgba {
+        r: v,
+        g: v,
+        b: v,
+        a: 255,
+    };
+    let pixels = vec![
+        grey(0),
+        grey(m / 2),
+        grey(m),
+        Rgba {
+            r: m,
+            g: 0,
+            b: m / 3,
+            a: 255,
+        },
+        grey(m + 1),
+        Rgba {
+            r: 255,
+            g: 0,
+            b: 0,
+            a: 255,
+        },
+    ];
+    let image = RgbaImage::new(6, 1, pixels).expect("valid image");
+    let detection = ok(quantizer.quantize(&image, settings, &[]), "near black");
+    check(&image, &detection, settings, 0, "near black");
+    let black = label_at(&detection, 0, 0);
+    for x in 1..4 {
+        assert_eq!(
+            label_at(&detection, x, 0),
+            black,
+            "near black: pixel {x} is within NEAR_BLACK_MAX and must be read as black"
+        );
+    }
+    let entry = &detection.palette.colours()[usize::from(black.0)];
+    assert_eq!(
+        entry.colour,
+        Oklab::new(0.0, 0.0, 0.0).expect("valid black"),
+        "near black: the black entry must be exactly black"
+    );
+    assert_ne!(
+        label_at(&detection, 4, 0),
+        black,
+        "near black: one step above NEAR_BLACK_MAX is a colour of its own when the limit allows"
     );
 }
 
