@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["crates/*"]
+# Patched third-party crates: built as dependencies, not linted or tested here.
+exclude = ["vendor"]
 
 [workspace.package]
 version = "0.1.0"
@@ -26,6 +28,10 @@ serde-wasm-bindgen = "0.6.5"
 
 # Test-only
 proptest = "1.12.0"
+
+# kurbo 0.13.1 with a fix for a hang in curve fitting; see vendor/kurbo/PATCHES.md.
+[patch.crates-io]
+kurbo = { path = "vendor/kurbo" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

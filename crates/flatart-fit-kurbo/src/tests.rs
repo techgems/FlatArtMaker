@@ -257,3 +257,92 @@ fn random_staircases_finish_within_tolerance() {
         );
     }
 }
+
+/// Runs `f` on its own thread and fails the test if it takes longer than
+/// `seconds`, so a regression to a hang fails the test rather than stalling
+/// the run.
+fn finishes_within<T: Send + 'static>(seconds: u64, f: impl FnOnce() -> T + Send + 'static) -> T {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(f());
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(seconds))
+        .unwrap_or_else(|_| panic!("didn't finish in {seconds} s"))
+}
+
+/// A cubic kurbo's fitter proposed on the Zapdos image: one control point is
+/// about 2e13 px away. Unpatched kurbo 0.13.1's `inv_arclen` never returned
+/// on it (see vendor/kurbo/PATCHES.md).
+#[test]
+fn inv_arclen_finishes_on_a_very_long_cubic() {
+    use kurbo::{CubicBez, ParamCurveArclen};
+    let t = finishes_within(10, || {
+        let c = CubicBez::new(
+            (394.25, 340.5),
+            (394.250_000_000_003_35, 340.499_999_999_989_65),
+            (-5_422_853_629_292.885, 21_691_414_519_092.727),
+            (397.0, 329.5),
+        );
+        c.inv_arclen(0.5 * c.arclen(1e-9), 1e-9)
+    });
+    assert!((0.0..=1.0).contains(&t), "{t}");
+}
+
+/// From Zapdos: one side of a lightning bolt, a smooth run with no corner.
+/// Fitting it hung for good in unpatched kurbo 0.13.1.
+#[test]
+fn a_lightning_bolt_edge_finishes() {
+    let raw = [
+        (396.0, 348.0),
+        (395.75, 348.5),
+        (395.5, 348.75),
+        (394.5, 349.0),
+        (393.5, 348.75),
+        (393.25, 348.5),
+        (393.0, 346.5),
+        (393.25, 344.5),
+        (393.5, 344.0),
+        (393.75, 343.5),
+        (394.0, 342.0),
+        (394.25, 340.5),
+        (394.5, 340.0),
+        (394.75, 339.5),
+        (395.0, 338.0),
+        (395.25, 336.5),
+        (395.5, 336.0),
+        (395.75, 335.5),
+        (396.0, 333.5),
+        (396.25, 331.5),
+        (396.5, 331.0),
+        (396.75, 330.5),
+        (397.0, 329.5),
+        (397.25, 328.5),
+        (397.5, 328.0),
+        (397.75, 327.5),
+        (398.0, 326.5),
+        (398.25, 325.5),
+        (398.5, 325.0),
+        (398.75, 324.5),
+        (399.0, 323.0),
+        (399.25, 321.5),
+        (399.5, 321.0),
+        (399.75, 320.5),
+        (400.0, 319.5),
+        (400.25, 318.5),
+        (400.5, 318.0),
+        (400.75, 317.5),
+        (401.0, 316.5),
+        (401.25, 315.5),
+        (401.5, 315.0),
+        (401.75, 314.5),
+        (402.0, 313.0),
+        (402.25, 311.5),
+        (402.5, 311.0),
+    ];
+    let points: Vec<_> = raw.iter().map(|&(x, y)| p(x, y)).collect();
+    let check = points.clone();
+    let curves = finishes_within(10, move || {
+        KurboFitter.fit(&points, &fixtures::fit_settings()).unwrap()
+    });
+    assert!(deviation::within(&curves, &check, 0.5));
+}
