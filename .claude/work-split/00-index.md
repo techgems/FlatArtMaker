@@ -23,7 +23,7 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [x] 12 | [3MF exporter](done/12-export-3mf.md) | 02, 10 | 1 | 2026-11-11 · c0a55ad |
 | - [x] 13 | [CLI and golden tests](done/13-cli-and-golden-tests.md) | 05–12 | 1 | 2026-11-11 · c0a55ad |
 | - [x] 14 | [WASM engine API](done/14-wasm-engine-api.md) | 13 | 2 | 2026-11-11 · 4cf4b19 |
-| - [ ] 15 | [UI shell and controls](15-ui-shell-and-controls.md) | 14 | 2 | – |
+| - [x] 15 | [UI shell and controls](done/15-ui-shell-and-controls.md) | 14 | 2 | 2026-11-12 · ba322ef |
 | - [ ] 16 | [Colour-mapping editor](16-colour-mapping-editor.md) | 06, 15 | 3 | – |
 | - [ ] 17 | [3D preview](17-3d-preview.md) | 15 | 3 | – |
 | - [ ] 18 | [Saved projects](18-saved-projects.md) | 06, 15 | 3 | – |

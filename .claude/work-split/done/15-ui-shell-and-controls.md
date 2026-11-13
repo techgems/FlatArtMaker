@@ -1,5 +1,7 @@
 # 15: UI shell and controls
 
+**Completed:** 2026-11-12 · commit ba322ef
+
 **Depends on:** 14 · **Spec:** UI, controls tables
 
 ## Goal
@@ -29,3 +31,10 @@ Build the single-page app: upload, controls, 2D previews and downloads.
   - the slider limits: C can't be 0, the threshold can't go below 0.25
   - B = 0 disables the base-only controls
 - A Playwright smoke test: upload the Jolteon PNG → download a 3MF.
+
+## Outcome (2026-11-12)
+- **Done:** the modules above plus `modules/session` (the open image, its settings and results) and `modules/colours` (the summary chips). Check, lint, the autofixer and the Vitest cases pass, and the app was checked by hand on Jolteon.
+- **Not done:**
+  - **The Playwright smoke test.** It needs `@playwright/test` as a new dependency; the user closed the task without it for now.
+  - **"Edit colours"** is disabled until task 16's modal exists.
+- **Found on the way:** the 3MF failed at 280 mm and up (looped fitted curves); fixed in c29f5d9.
