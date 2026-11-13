@@ -5,7 +5,9 @@
 //! U-turn a hair wide and comes back, all within the tolerance, so the
 //! deviation check passes. Flattened into straight segments, the two sides
 //! of that needle can cross, which the mesh can't triangulate. The same
-//! happens at the far end when a curve overshoots its end and comes back.
+//! happens at the far end when a curve overshoots its end and comes back,
+//! and when a curve's handles cross so it loops over itself between its
+//! ends: only fine flattening (large print sizes) resolves such a loop.
 
 use flatart_domain::{CubicBezier, PxPoint};
 
@@ -80,9 +82,46 @@ fn stays_between_its_ends(c: &CubicBezier) -> bool {
         .all(|f| f >= -slack && f <= length2 + slack)
 }
 
+/// Whether `c` crosses itself: a loop, which can stay between its ends and
+/// within the tolerance, a hair wide. Exact: in power form B(t) = a t³ +
+/// b t² + c t + d, B(s) = B(t) for s ≠ t means a (σ² − π) + b σ + c = 0,
+/// with σ = s + t and π = s t, which gives σ, then π, then s and t.
+fn crosses_itself(c: &CubicBezier) -> bool {
+    let p = [c.from, c.ctrl1, c.ctrl2, c.to].map(|q| (q.x.0, q.y.0));
+    let combine = |w: [f64; 4]| {
+        (
+            w[0] * p[0].0 + w[1] * p[1].0 + w[2] * p[2].0 + w[3] * p[3].0,
+            w[0] * p[0].1 + w[1] * p[1].1 + w[2] * p[2].1 + w[3] * p[3].1,
+        )
+    };
+    let a = combine([-1.0, 3.0, -3.0, 1.0]);
+    let b = combine([3.0, -6.0, 3.0, 0.0]);
+    let k = combine([-3.0, 3.0, 0.0, 0.0]);
+    let cross = |u: V, v: V| u.0 * v.1 - u.1 * v.0;
+    let denominator = cross(b, a);
+    // a and b parallel (or a cubic that is really a quadratic): no loop.
+    if denominator.abs() <= 1e-12 * a.0.hypot(a.1) * b.0.hypot(b.1) {
+        return false;
+    }
+    let sigma = cross(a, k) / denominator;
+    let (ai, bi, ki) = if a.0.abs() >= a.1.abs() {
+        (a.0, b.0, k.0)
+    } else {
+        (a.1, b.1, k.1)
+    };
+    let pi = sigma * sigma + (bi * sigma + ki) / ai;
+    let discriminant = sigma * sigma - 4.0 * pi;
+    if discriminant <= 0.0 {
+        return false;
+    }
+    let root = discriminant.sqrt();
+    let (s, t) = ((sigma - root) / 2.0, (sigma + root) / 2.0);
+    (0.0..=1.0).contains(&s) && (0.0..=1.0).contains(&t)
+}
+
 /// Whether `curves`, fitted to the corner-free `run` (at least 2 points),
-/// leave and reach its ends along it, each stay between their own ends, and
-/// never turn back where two of them meet.
+/// leave and reach its ends along it, each stay between their own ends
+/// without crossing themselves, and never turn back where two of them meet.
 pub fn none(curves: &[CubicBezier], run: &[PxPoint]) -> bool {
     let (Some(first), Some(last)) = (curves.first(), curves.last()) else {
         return true;
@@ -93,7 +132,9 @@ pub fn none(curves: &[CubicBezier], run: &[PxPoint]) -> bool {
         && curves
             .windows(2)
             .all(|w| dot(end_direction(&w[0]), start_direction(&w[1])) > 0.0)
-        && curves.iter().all(stays_between_its_ends)
+        && curves
+            .iter()
+            .all(|c| stays_between_its_ends(c) && !crosses_itself(c))
 }
 
 #[cfg(test)]
@@ -134,6 +175,50 @@ mod tests {
             (661.0, 367.5),
         ]);
         assert!(!stays_between_its_ends(&c));
+    }
+
+    /// From Jolteon traced for 280 mm: the handles cross, so the curve
+    /// loops (at t ≈ 0.56 and 0.65) while staying between its ends and
+    /// within the tolerance. Flattened finely, the loop's sides cross.
+    #[test]
+    fn a_curve_that_loops_crosses_itself() {
+        let c = curve([
+            (676.1226, 425.1171),
+            (674.9817, 428.7777),
+            (676.5565, 422.774),
+            (675.0, 429.0),
+        ]);
+        assert!(stays_between_its_ends(&c));
+        assert!(crosses_itself(&c));
+        assert!(!none(&[c], &[c.from, c.to]));
+        // The textbook loop: handles reaching past each other.
+        assert!(crosses_itself(&curve([
+            (0.0, 0.0),
+            (4.0, 2.0),
+            (-1.0, 2.0),
+            (3.0, 0.0)
+        ])));
+    }
+
+    #[test]
+    fn arcs_and_s_bends_dont_cross_themselves() {
+        for c in [
+            curve([(0.0, 0.0), (0.0, 1.33), (2.0, 1.33), (2.0, 0.0)]),
+            curve([(0.0, 0.0), (2.0, 2.0), (1.0, -2.0), (3.0, 0.0)]),
+            curve([(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]),
+            // A quadratic raised to a cubic: a and b are both zero or parallel.
+            curve([(0.0, 0.0), (2.0, 4.0), (4.0, 4.0), (6.0, 0.0)]),
+        ] {
+            assert!(!crosses_itself(&c), "{c:?}");
+        }
+        // Crossed handles that still don't loop: the crossing falls outside
+        // 0..1.
+        assert!(!crosses_itself(&curve([
+            (0.0, 0.0),
+            (3.0, 1.0),
+            (0.0, 1.0),
+            (3.0, 0.0)
+        ])));
     }
 
     #[test]

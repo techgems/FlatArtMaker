@@ -23,6 +23,9 @@ use flatart_domain::{CubicBezier, PxPoint, Result};
 ///   needle a hair wide; flattened, its two sides can cross.) A curve's
 ///   direction at an end is along its handle there, or past it to the next
 ///   control point when the handle has no length.
+/// - **No loops:** no curve crosses itself. (A loop can stay within the
+///   tolerance and between the curve's ends; flattened finely enough, as
+///   for a large print, its sides cross.)
 /// - **Deterministic.**
 pub trait CurveFitter {
     fn fit(&self, points: &[PxPoint], settings: &FitSettings) -> Result<Vec<CubicBezier>>;

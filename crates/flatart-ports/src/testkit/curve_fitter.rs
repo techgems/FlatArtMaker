@@ -102,7 +102,25 @@ fn check(fitter: &dyn CurveFitter, case: &str, points: &[PxPoint], settings: &Fi
     assert_eq!(curves, again, "{case}: not deterministic");
 }
 
-/// Checks the contract's "no doubling back": `curves`, fitted to `points`,
+/// Whether `c` crosses itself, found by sampling it densely and testing
+/// every pair of non-neighbouring segments.
+fn loops(c: &CubicBezier) -> bool {
+    const SAMPLES: u32 = 512;
+    let line: Vec<P> = (0..=SAMPLES)
+        .map(|k| px(c.point_at(f64::from(k) / f64::from(SAMPLES))))
+        .collect();
+    let orient = |a: P, b: P, q: P| (b.0 - a.0) * (q.1 - a.1) - (b.1 - a.1) * (q.0 - a.0);
+    let cross = |(a, b): (P, P), (p, q): (P, P)| {
+        orient(a, b, p) * orient(a, b, q) < 0.0 && orient(p, q, a) * orient(p, q, b) < 0.0
+    };
+    let segments: Vec<(P, P)> = line.windows(2).map(|w| (w[0], w[1])).collect();
+    segments
+        .iter()
+        .enumerate()
+        .any(|(i, &s)| segments.iter().skip(i + 2).any(|&t| cross(s, t)))
+}
+
+/// Checks the contract's "no doubling back" and "no loops": `curves`, fitted to `points`,
 /// leave and reach the polyline's ends along it, and only turn back where
 /// two curves meet at a corner or where the polyline itself turns back
 /// (more than 90°). Adapters can run it on their own cases.
@@ -128,6 +146,10 @@ pub fn check_no_doubling_back(
                 "{case}: curve {i} runs back behind its start or past its end at {q:?}"
             );
         }
+        assert!(
+            !loops(c),
+            "{case}: curve {i} crosses itself (a loop between {a:?} and {b:?})"
+        );
     }
     let along = |a: P, b: P| (b.0 - a.0, b.1 - a.1);
     assert!(
