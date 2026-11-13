@@ -9,6 +9,7 @@ import type {
 } from '../../generated/flatart-wasm/flatart_wasm';
 
 export type {
+  Advanced,
   ArtBounds,
   Border,
   BorderMap,

@@ -3,7 +3,12 @@
   --color-surface: #ffffff;
   --color-text: #1b1b1f;
   --color-muted: #6b6b76;
+  --color-border: #dcdce2;
+  --color-check: #ececf0;
+  --color-accent: #2f5bd3;
+  --color-on-accent: #ffffff;
   --color-danger: #b42318;
+  --color-warning: #9a5b00;
   --radius: 8px;
   font-family: system-ui, sans-serif;
   color: var(--color-text);
@@ -16,7 +21,12 @@
     --color-surface: #1d1d22;
     --color-text: #ececf1;
     --color-muted: #9a9aa5;
+    --color-border: #34343c;
+    --color-check: #26262c;
+    --color-accent: #7a9cff;
+    --color-on-accent: #0d1430;
     --color-danger: #f97066;
+    --color-warning: #f5b955;
   }
 }
 
