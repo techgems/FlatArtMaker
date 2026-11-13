@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ModelView } from '../../preview-3d';
   import { getSession } from '../../session';
   import { PREVIEW_TABS, PreviewTabs } from '../preview-tabs.svelte';
   import MappedView from './MappedView.svelte';
@@ -30,7 +31,12 @@
     {/if}
   </div>
 
-  <div class="stage" role="tabpanel" id="{id}-panel" aria-labelledby="{id}-{tabs.current}">
+  <div
+    class={['stage', tabs.current === '3d' && 'model']}
+    role="tabpanel"
+    id="{id}-panel"
+    aria-labelledby="{id}-{tabs.current}"
+  >
     {#if tabs.current === 'original' && session.imageUrl}
       <img src={session.imageUrl} alt="The uploaded original" />
     {:else if tabs.current === 'mapped' && session.previews}
@@ -38,7 +44,7 @@
     {:else if tabs.current === 'vector' && session.svgUrl}
       <img src={session.svgUrl} alt="The traced vector art" />
     {:else if tabs.current === '3d'}
-      <p class="placeholder">The 3D preview is coming soon.</p>
+      <ModelView />
     {/if}
   </div>
 
@@ -106,14 +112,17 @@
       20px 20px;
   }
 
+  /* The 3D view fills the stage, on a plain background. */
+  .model {
+    place-items: stretch;
+    padding: 0;
+    background: var(--color-surface);
+  }
+
   .stage > :global(img) {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-  }
-
-  .placeholder {
-    color: var(--color-muted);
   }
 
   .message {
