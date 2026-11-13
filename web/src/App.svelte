@@ -11,13 +11,44 @@
     setEngineStatus,
   } from './modules/engine';
   import { PreviewPanel } from './modules/preview-2d';
+  import {
+    Projects,
+    RecentProjects,
+    StorageNotice,
+    createBrowserProjectStore,
+    setProjects,
+  } from './modules/projects';
   import { Session, setSession } from './modules/session';
   import { UploadScreen } from './modules/upload';
 
   const client = setEngineClient(createWorkerEngineClient());
   const status = setEngineStatus(new EngineStatus(client));
-  const session = setSession(new Session(client));
+  const projects = setProjects(new Projects(createBrowserProjectStore()));
+  const session = setSession(new Session(client, { onchange: (work) => projects.changed(work) }));
   void status.load();
+  void projects.refresh();
+
+  /** A new image starts a new project, named after the file. */
+  async function openFile(file: File): Promise<void> {
+    await projects.close();
+    await session.open(file);
+    const work = session.work;
+    if (session.phase === 'ready' && work) await projects.create(file.name, file, work);
+  }
+
+  async function reopen(id: string): Promise<void> {
+    await projects.close();
+    const saved = await projects.load(id);
+    if (saved === null) return;
+    const file = new File([saved.image], saved.name, { type: saved.image.type });
+    await session.open(file, saved);
+    if (session.phase === 'ready') projects.resume(id);
+  }
+
+  async function closeImage(): Promise<void> {
+    await projects.close();
+    session.close();
+  }
 
   onDestroy(() => {
     session.close();
@@ -25,16 +56,19 @@
   });
 </script>
 
+<svelte:window onpagehide={() => void projects.flush()} />
+
 <div class="app">
   <header>
     <h1>FlatArtMaker</h1>
     {#if session.phase === 'ready'}
       <span class="file">{session.name}</span>
-      <button type="button" class="new" onclick={() => session.close()}>New image</button>
+      <button type="button" class="new" onclick={() => void closeImage()}>New image</button>
       <div class="downloads"><DownloadBar /></div>
     {/if}
     <EngineBadge />
   </header>
+  <div class="notices"><StorageNotice /></div>
 
   {#if session.phase === 'ready'}
     <main class="workspace">
@@ -45,14 +79,19 @@
   {:else if session.phase === 'loading'}
     <p class="loading" aria-live="polite">Reading {session.name}…</p>
   {:else}
-    <UploadScreen onfile={(file: File) => void session.open(file)} error={session.error} />
+    <div class="start">
+      <UploadScreen onfile={(file: File) => void openFile(file)} error={session.error} />
+      <div class="recent">
+        <RecentProjects onopen={(id: string) => void reopen(id)} />
+      </div>
+    </div>
   {/if}
 </div>
 
 <style>
   .app {
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     height: 100vh;
   }
 
@@ -115,6 +154,16 @@
     min-width: 0;
     min-height: 0;
     padding: 1rem;
+  }
+
+  .start {
+    overflow-y: auto;
+  }
+
+  .recent {
+    max-width: 40rem;
+    margin: 0 auto 3rem;
+    padding: 0 1rem;
   }
 
   .loading {
