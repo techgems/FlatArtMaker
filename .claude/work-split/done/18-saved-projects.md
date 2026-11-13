@@ -1,5 +1,7 @@
 # 18: Saved projects
 
+**Completed:** 2026-11-13 · commit 7ed0bd8
+
 **Depends on:** 06, 15 · **Spec:** Saved projects
 
 ## Goal
@@ -23,3 +25,11 @@ Autosave each project and reopen it later.
 ## Acceptance
 - Vitest with the fake store covers: save → load gives identical settings and edits, a migration from version 1, and the storage-full and unavailable paths.
 - Manual check: edit a Jolteon project, reload the page, reopen it. The sliders, mapping, painted areas and undo history are restored.
+
+## Outcome (2026-11-13)
+- **Done:** the store, autosave, Recent projects (rename, confirmed delete), and the storage-full and unavailable notices. Vitest covers each acceptance case.
+- **Manual check:** done on Jolteon. Sliders, mapping, the undone paint and the undo position all came back after a reload.
+  - There's no colour editor yet (task 16), so the recorded edit log (`fixtures/jolteon/edits.json`, undo position 3) was written into the saved project directly.
+- **Migrations:** version 1 is the only format so far, so no real migration exists yet.
+  - The test runs a version 1 record through two test-only steps, and checks that a record from a newer app is refused, not overwritten.
+- **Session:** now keeps the edit log (`applyEdits`) for task 16 to use.

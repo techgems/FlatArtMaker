@@ -25,8 +25,8 @@ Each file is one self-contained task, derived from `SPEC.md`. Rules:
 | - [x] 14 | [WASM engine API](done/14-wasm-engine-api.md) | 13 | 2 | 2026-11-11 · 4cf4b19 |
 | - [x] 15 | [UI shell and controls](done/15-ui-shell-and-controls.md) | 14 | 2 | 2026-11-12 · ba322ef |
 | - [ ] 16 | [Colour-mapping editor](16-colour-mapping-editor.md) | 06, 15 | 3 | – |
-| - [ ] 17 | [3D preview](17-3d-preview.md) | 15 | 3 | – |
-| - [ ] 18 | [Saved projects](18-saved-projects.md) | 06, 15 | 3 | – |
+| - [x] 17 | [3D preview](done/17-3d-preview.md) | 15 | 3 | 2026-11-13 · 86ff1e4 |
+| - [x] 18 | [Saved projects](done/18-saved-projects.md) | 06, 15 | 3 | 2026-11-13 · 7ed0bd8 |
 | - [x] 19 | [STEP export](done/19-step-export.md) | 03, 08, 14 | 4 | 2026-11-12 · 8d6e5ed |
 | - [ ] 20 | [Deploy](20-deploy.md) | 15 | 5 | – |
 | - [x] 21 | [Lighter STEP files](done/21-step-size.md) | 19 | 4 | 2026-11-12 · 5336d64 |

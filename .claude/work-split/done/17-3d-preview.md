@@ -1,5 +1,7 @@
 # 17: 3D preview
 
+**Completed:** 2026-11-13 · commit 86ff1e4
+
 **Depends on:** 15 · **Spec:** Stack (3D preview), Front end (`MeshViewer`)
 
 ## Goal
@@ -15,3 +17,11 @@ Show the 3D tab behind a `MeshViewer` interface.
 - The B = 0 and B > 0 Jolteon models render correctly.
 - Changing a slider updates the view in under 300 ms after the engine responds.
 - No WebGL resources leak when switching tabs or projects.
+
+## Outcome (2026-11-13)
+- **Done:** every acceptance item, checked in the browser on Jolteon.
+  - B > 0 and B = 0 both render.
+  - No main-thread task over 50 ms while the model updates, so it changes well under 300 ms after the engine answers.
+  - After 20 switches between tabs there's still one canvas and no WebGL warnings.
+- **Also:** three.js loads only when the 3D tab first opens. The main bundle is 85 kB; three.js is a 554 kB chunk fetched on demand.
+- **Dependencies:** `three` 0.187.0 and `@types/three`, approved by the user.
