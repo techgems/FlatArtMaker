@@ -39,6 +39,14 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 
+# tsify writes each type's TypeScript declaration into a custom section of
+# the object file the type is compiled into, and the linker keeps only
+# object files something links to. In a dev build each module is its own
+# object file, so a module of plain data types (stages.rs) lost its
+# declarations from `wasm-pack --dev` output. One codegen unit keeps them.
+[profile.dev.package.flatart-domain]
+codegen-units = 1
+
 [profile.release]
 opt-level = "s"
 lto = true
